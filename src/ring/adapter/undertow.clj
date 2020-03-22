@@ -43,7 +43,8 @@
 
 (defn ^:no-doc listen
   [builder {:keys [host port ssl-port ssl-context key-managers trust-managers]
-            :or   {host "localhost" port 80}}]
+            :as   options
+            :or   {host "localhost" port 80 ssl-context (keystore->ssl-context options)}}]
   (cond-> builder
           (and ssl-port ssl-context) (.addHttpsListener ssl-port host ssl-context)
           (and ssl-port (not ssl-context)) (.addHttpsListener ^int ssl-port ^String host ^"[Ljavax.net.ssl.KeyManager;" key-managers ^"[Ljavax.net.ssl.TrustManager;" trust-managers)

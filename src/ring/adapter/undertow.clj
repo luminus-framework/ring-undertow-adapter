@@ -1,7 +1,6 @@
 (ns ring.adapter.undertow
   "Adapter for the Undertow webserver."
   (:require
-    [ring.adapter.undertow.headers :refer [get-headers set-headers]]
     [ring.adapter.undertow.request :refer [build-exchange-map]]
     [ring.adapter.undertow.response :refer [set-exchange-response]]
     [ring.adapter.undertow.ssl :refer [keystore->ssl-context]])

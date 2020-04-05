@@ -8,6 +8,6 @@
                                       [clj-http "3.10.0"]
                                       [stylefruits/gniazdo "1.1.3"]]}
              :precomp {:prep-tasks ["compile"]}}
-  ;:javac-options ["-target" "1.8"]
+  :javac-options ["-target" "1.10" "-source" "1.8"]
   :java-source-paths ["src"]
   :compile-path "target")

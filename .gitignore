@@ -9,3 +9,5 @@ pom.xml.asc
 .lein-failures
 .lein-plugins
 .lein-repl-history
+/.idea
+*.iml

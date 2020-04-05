@@ -1,8 +1,9 @@
 (ns ring.adapter.test.undertow
-  (:require 
-   [clojure.test :refer :all]
-   [ring.adapter.undertow :refer :all]
-   [clj-http.client :as http]))
+  (:require
+    [clojure.test :refer :all]
+    [ring.adapter.undertow :refer :all]
+    [clj-http.client :as http]
+    [gniazdo.core :as gniazdo]))
 
 (defn- hello-world [request]
   {:status  200
@@ -19,6 +20,11 @@
   {:status 200
    :headers {"request-map" (str (dissoc request :body))}
    :body (:body request)})
+
+(defn- websocket-handler [ws-opts]
+  (fn [request]
+    {:websocket? true
+     :ws-config  ws-opts}))
 
 (defmacro with-server [app options & body]
   `(let [server# (run-undertow ~app ~options)]
@@ -65,3 +71,18 @@
           (is (= (:server-name request-map) "localhost"))
           (is (= (:server-port request-map) 4347))
           (is (= (:ssl-client-cert request-map) nil)))))))
+
+(testing "websockets"
+  (let [events  (atom [])
+        result  (promise)
+        ws-opts {:on-open    (fn [_]
+                               (swap! events conj :open))
+                 :on-message (fn [{:keys [data]}]
+                               (swap! events conj data))
+                 :on-close   (fn [_]
+                               (deliver result (swap! events conj :close)))}]
+    (with-server (websocket-handler ws-opts) {:port 4347}
+      (let [socket (gniazdo/connect "ws://localhost:4347/")]
+        (gniazdo/send-msg socket "hello")
+        (gniazdo/close socket))
+      (is (= [:open "hello" :close] (deref result 2000 :fail))))))

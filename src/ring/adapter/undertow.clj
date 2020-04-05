@@ -3,7 +3,8 @@
   (:require
     [ring.adapter.undertow.request :refer [build-exchange-map]]
     [ring.adapter.undertow.response :refer [set-exchange-response]]
-    [ring.adapter.undertow.ssl :refer [keystore->ssl-context]])
+    [ring.adapter.undertow.ssl :refer [keystore->ssl-context]]
+    [ring.adapter.undertow.websocket :as ws])
   (:import
     [io.undertow Undertow Undertow$Builder UndertowOptions]
     [org.xnio Options SslClientAuthMode]
@@ -15,14 +16,15 @@
 (defn ^:no-doc undertow-handler
   "Returns an Undertow HttpHandler implementation for the given Ring handler."
   [handler non-blocking]
-  (reify
-    HttpHandler
+  (reify HttpHandler
     (handleRequest [_ exchange]
       (when-not non-blocking
         (.startBlocking exchange))
       (let [request-map  (build-exchange-map exchange)
             response-map (handler request-map)]
-        (set-exchange-response exchange response-map)))))
+        (if (:websocket? response-map)
+          (->> response-map (ws/ws-callback) (ws/ws-request exchange))
+          (set-exchange-response exchange response-map))))))
 
 (defn ^:no-doc on-io-proxy
   [handler]
@@ -33,7 +35,7 @@
   (BlockingHandler. (undertow-handler handler true)))
 
 (defn ^:no-doc tune
-  [builder {:keys [io-threads worker-threads buffer-size direct-buffers?]}]
+  [^Undertow$Builder builder {:keys [io-threads worker-threads buffer-size direct-buffers?]}]
   (cond-> builder
           io-threads (.setIoThreads io-threads)
           worker-threads (.setWorkerThreads worker-threads)
@@ -41,15 +43,15 @@
           (not (nil? direct-buffers?)) (.setDirectBuffers direct-buffers?)))
 
 (defn ^:no-doc listen
-  [builder {:keys [host port ssl-port ssl-context key-managers trust-managers]
-            :as   options
-            :or   {host "localhost" port 80 ssl-context (keystore->ssl-context options)}}]
+  [^Undertow$Builder builder {:keys [host port ssl-port ssl-context key-managers trust-managers]
+                              :as   options
+                              :or   {host "localhost" port 80 ssl-context (keystore->ssl-context options)}}]
   (cond-> builder
           (and ssl-port ssl-context) (.addHttpsListener ssl-port host ssl-context)
           (and ssl-port (not ssl-context)) (.addHttpsListener ^int ssl-port ^String host ^"[Ljavax.net.ssl.KeyManager;" key-managers ^"[Ljavax.net.ssl.TrustManager;" trust-managers)
           (and port) (.addHttpListener port host)))
 
-(defn ^:no-doc client-auth [builder {:keys [client-auth]}]
+(defn ^:no-doc client-auth [^Undertow$Builder builder {:keys [client-auth]}]
   (when client-auth
     (case client-auth
       (:want :requested)
@@ -57,7 +59,7 @@
       (:need :required)
       (.setSocketOption builder Options/SSL_CLIENT_AUTH_MODE SslClientAuthMode/REQUIRED))))
 
-(defn ^:no-doc http2 [builder {:keys [http2?]}]
+(defn ^:no-doc http2 [^Undertow$Builder builder {:keys [http2?]}]
   (when http2?
     (.setServerOption builder UndertowOptions/ENABLE_HTTP2 true)
     (.setServerOption builder UndertowOptions/ENABLE_SPDY true)))

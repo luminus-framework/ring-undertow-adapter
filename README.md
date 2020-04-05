@@ -9,6 +9,8 @@ TODO
 
 ## Usage
 
+### HTTP Handler
+
 ```clojure
 (require '[ring.adapter.undertow :refer [run-undertow]])
 
@@ -17,6 +19,20 @@ TODO
    :body "Hello world"})
 
 (run-undertow handler {:port 8080})
+```
+
+### WebSocket Handler
+
+```clojure
+(require '[ring.adapter.undertow.websocket :as ws])
+
+(fn [request]
+  {:websocket? true
+    :ws-config {:on-open (fn [_] (println "WS open!"))
+    :on-message (fn [{:keys [channel data]}]
+                  (println "WS message" data)
+                  (ws/send "message received" channel))
+    :on-close   (fn [_] (println "WS closeed!"))}})
 ```
 
 ## License

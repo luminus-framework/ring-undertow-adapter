@@ -27,10 +27,11 @@
    :on-error   | fn taking map of keys :channel, :error
 
    Each key defaults to no action"
-  [{:keys [on-message on-close on-error]
-    :or   {on-message (constantly nil)
-           on-close   (constantly nil)
-           on-error   (constantly nil)}}]
+  [{:keys [on-message on-close-message on-close on-error]
+    :or   {on-message         (constantly nil)
+           on-close           (constantly nil)
+           on-close-message   (constantly nil)
+           on-error           (constantly nil)}}]
   (proxy [AbstractReceiveListener] []
     (onFullTextMessage [^WebSocketChannel channel ^BufferedTextMessage message]
       (on-message {:channel channel
@@ -41,11 +42,13 @@
           (let [payload (.getResource pooled)]
             (on-message {:channel channel
                          :data    (Util/toArray payload)}))
-          (finally
-            (.free pooled)))))
+          (finally (.free pooled)))))
+    (onClose [^WebSocketChannel ws-channel ^io.undertow.websockets.core.StreamSourceFrameChannel frame-channel]
+                    (on-close {:ws-channel    ws-channel
+                               :frame-channel frame-channel}))
     (onCloseMessage [^CloseMessage message ^WebSocketChannel channel]
-      (on-close {:channel channel
-                 :message message}))
+      (on-close-message {:channel channel
+                         :message message}))
     (onError [^WebSocketChannel channel ^Throwable error]
       (on-error {:channel channel
                  :error   error}))))

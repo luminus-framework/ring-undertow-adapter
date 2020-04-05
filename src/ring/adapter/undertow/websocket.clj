@@ -23,9 +23,10 @@
   "Default websocket listener
 
    Takes a map of functions as opts:
-   :on-message | fn taking map of keys :channel, :data
-   :on-close   | fn taking map of keys :channel, :message
-   :on-error   | fn taking map of keys :channel, :error
+   :on-message         | fn taking map of keys :channel, :data
+   :on-close-message   | fn taking map of keys :channel, :message
+   :on-close           | fn taking map of keys :channel, :ws-channel
+   :on-error           | fn taking map of keys :channel, :error
 
    Each key defaults to no action"
   [{:keys [on-message on-close on-close-message on-error]}]

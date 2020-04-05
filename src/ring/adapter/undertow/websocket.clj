@@ -1,4 +1,5 @@
 (ns ring.adapter.undertow.websocket
+  (:refer-clojure :exclude [send])
   (:import
     [org.xnio Buffers]
     [java.nio ByteBuffer]

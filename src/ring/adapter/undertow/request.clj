@@ -20,6 +20,6 @@
      :headers            (-> exchange .getRequestHeaders get-headers)
      :content-type       ctype
      :content-length     (-> exchange .getRequestContentLength)
-     :character-encoding (or (when ctype (Headers/extractTokenFromHeader ctype "charset")) "ISO-8859-1")
+     :character-encoding (or (when ctype (Headers/extractTokenFromHeader ctype "charset")) "ISO-8859-1") ;; TODO: deprecated
      :body               (when (.isBlocking exchange) (.getInputStream exchange))
      :context            (.getResolvedPath exchange)}))

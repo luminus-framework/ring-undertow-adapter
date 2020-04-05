@@ -47,6 +47,6 @@
   (when-not exchange
     (throw (Exception. "Null exchange given.")))
   (when status
-    (.setResponseCode exchange status))
+    (.setStatusCode exchange status))
   (set-headers (.getResponseHeaders exchange) headers)
   (respond body exchange))

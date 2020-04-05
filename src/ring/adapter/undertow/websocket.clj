@@ -1,13 +1,18 @@
 (ns ring.adapter.undertow.websocket
   (:import
+    [org.xnio Buffers]
+    [java.nio ByteBuffer]
     [io.undertow.server HttpServerExchange]
-    [io.undertow.websockets WebSocketConnectionCallback
-                            WebSocketProtocolHandshakeHandler]
-    [io.undertow.websockets.core AbstractReceiveListener
-                                 BufferedBinaryMessage
-                                 BufferedTextMessage
-                                 CloseMessage
-                                 WebSocketChannel]
+    [io.undertow.websockets 
+     WebSocketConnectionCallback
+     WebSocketProtocolHandshakeHandler]
+    [io.undertow.websockets.core 
+     AbstractReceiveListener
+     BufferedBinaryMessage
+     BufferedTextMessage
+     CloseMessage
+     WebSocketChannel
+     WebSockets]
     [io.undertow.websockets.spi WebSocketHttpExchange]
     [org.xnio ChannelListener]
     [ring.adapter.undertow Util]))
@@ -57,7 +62,31 @@
         (.set (.getReceiveSetter channel) listener)
         (.resumeReceives channel)))))
 
-
 (defn ws-request [^HttpServerExchange exchange ^WebSocketConnectionCallback callback]
   (let [handler (WebSocketProtocolHandshakeHandler. callback)]
     (.handleRequest handler exchange)))
+
+(defn send-text
+  ([message channel] (send-text message channel nil))
+  ([message channel callback]
+   (WebSockets/sendText message channel callback))
+  ([message channel callback timeout]
+   (WebSockets/sendText message channel callback timeout)))
+
+(defn send-binary
+  ([message channel] (send-text message channel nil))
+  ([message channel callback]
+   (WebSockets/sendBinary message channel callback))
+  ([message channel callback timeout]
+   (WebSockets/sendBinary message channel callback timeout)))
+
+(defn send
+  ([message channel] (send message channel nil))
+  ([message channel callback]
+   (if (string? message)
+     (send-text message channel callback)
+     (send-binary message channel callback)))
+  ([message channel callback timeout]
+   (if (string? message)
+     (send-text message channel callback timeout)
+     (send-binary message channel callback timeout))))

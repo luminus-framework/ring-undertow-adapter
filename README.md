@@ -23,15 +23,20 @@ TODO
 
 ### WebSocket Handler
 
+A WebSocket handler is created using a Ring handler function that returns a map
+containing a `:undertow/websocket` containing the configuration map:
+
+   `:on-message` - fn taking map of keys `:channel`, `:data`
+   `:on-close` - fn taking map of keys `:channel`, `:message` (optional)
+   `:on-error` - fn taking map of keys `:channel`, `:error` (optional)
+
 ```clojure
 (require '[ring.adapter.undertow.websocket :as ws])
 
 (fn [request]
-  {:websocket? true
-    :ws-config {:on-open (fn [_] (println "WS open!"))
-    :on-message (fn [{:keys [channel data]}]
-                  (println "WS message" data)
-                  (ws/send "message received" channel))
+  {:undertow/websocket 
+   {:on-open (fn [_] (println "WS open!"))
+    :on-message (fn [{:keys [channel data]}] (ws/send "message received" channel))
     :on-close   (fn [_] (println "WS closeed!"))}})
 ```
 

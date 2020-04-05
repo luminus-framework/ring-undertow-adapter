@@ -23,8 +23,7 @@
 
 (defn- websocket-handler [ws-opts]
   (fn [request]
-    {:websocket? true
-     :ws-config  ws-opts}))
+    {:undetow/websocket ws-opts}))
 
 (defmacro with-server [app options & body]
   `(let [server# (run-undertow ~app ~options)]

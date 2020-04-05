@@ -22,8 +22,8 @@
         (.startBlocking exchange))
       (let [request-map  (build-exchange-map exchange)
             response-map (handler request-map)]
-        (if (:websocket? response-map)
-          (->> response-map :ws-config (ws/ws-callback) (ws/ws-request exchange))
+        (if-let [ws-config (:undertow/websocket response-map)]
+          (->> ws-config (ws/ws-callback) (ws/ws-request exchange))
           (set-exchange-response exchange response-map))))))
 
 (defn ^:no-doc on-io-proxy

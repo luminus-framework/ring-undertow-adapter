@@ -1,23 +1,23 @@
 (ns ring.adapter.undertow.websocket
   (:refer-clojure :exclude [send])
   (:import
-   [org.xnio Buffers]
-   [java.nio ByteBuffer]
-   [io.undertow.server HttpServerExchange]
-   [io.undertow.websockets
-    WebSocketConnectionCallback
-    WebSocketProtocolHandshakeHandler]
-   [io.undertow.websockets.core
-    AbstractReceiveListener
-    BufferedBinaryMessage
-    BufferedTextMessage
-    CloseMessage
-    StreamSourceFrameChannel
-    WebSocketChannel
-    WebSockets]
-   [io.undertow.websockets.spi WebSocketHttpExchange]
-   [org.xnio ChannelListener]
-   [ring.adapter.undertow Util]))
+    [java.nio ByteBuffer]
+    [io.undertow.server HttpServerExchange]
+    [io.undertow.websockets
+     WebSocketConnectionCallback
+     WebSocketProtocolHandshakeHandler]
+    [io.undertow.websockets.core
+     AbstractReceiveListener
+     BufferedBinaryMessage
+     BufferedTextMessage
+     CloseMessage
+     StreamSourceFrameChannel
+     WebSocketChannel
+     WebSockets
+     WebSocketCallback]
+    [io.undertow.websockets.spi WebSocketHttpExchange]
+    [org.xnio ChannelListener]
+    [ring.adapter.undertow Util]))
 
 (defn ws-listener
   "Default websocket listener
@@ -29,8 +29,8 @@
 
    Each key defaults to no action"
   [{:keys [on-message on-close on-close-message on-error]}]
-  (let [on-message (or (constantly nil))
-        on-error (or on-error (constantly nil))
+  (let [on-message       (or on-message (constantly nil))
+        on-error         (or on-error (constantly nil))
         on-close-message (or on-close-message (constantly nil))
         on-close         (or on-close
                              (fn [{:keys [ws-channel]}]
@@ -76,16 +76,16 @@
 
 (defn send-text
   ([message channel] (send-text message channel nil))
-  ([message channel callback]
+  ([^String message ^WebSocketChannel channel ^WebSocketCallback callback]
    (WebSockets/sendText message channel callback))
-  ([message channel callback timeout]
+  ([^String message ^WebSocketChannel channel ^WebSocketCallback callback ^long timeout]
    (WebSockets/sendText message channel callback timeout)))
 
 (defn send-binary
   ([message channel] (send-text message channel nil))
-  ([message channel callback]
+  ([^ByteBuffer message ^WebSocketChannel channel ^WebSocketCallback callback]
    (WebSockets/sendBinary message channel callback))
-  ([message channel callback timeout]
+  ([^ByteBuffer message ^WebSocketChannel channel ^WebSocketCallback callback ^long timeout]
    (WebSockets/sendBinary message channel callback timeout)))
 
 (defn send

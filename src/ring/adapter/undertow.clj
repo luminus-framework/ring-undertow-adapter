@@ -23,7 +23,7 @@
       (let [request-map  (build-exchange-map exchange)
             response-map (handler request-map)]
         (if (:websocket? response-map)
-          (->> response-map (ws/ws-callback) (ws/ws-request exchange))
+          (->> response-map :ws-config (ws/ws-callback) (ws/ws-request exchange))
           (set-exchange-response exchange response-map))))))
 
 (defn ^:no-doc on-io-proxy

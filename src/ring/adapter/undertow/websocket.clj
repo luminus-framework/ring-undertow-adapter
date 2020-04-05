@@ -60,5 +60,4 @@
 
 (defn ws-request [^HttpServerExchange exchange ^WebSocketConnectionCallback callback]
   (let [handler (WebSocketProtocolHandshakeHandler. callback)]
-    (.handleRequest handler exchange))
-  )
+    (.handleRequest handler exchange)))

@@ -70,19 +70,19 @@
           (is (= (:scheme request-map) :http))
           (is (= (:server-name request-map) "localhost"))
           (is (= (:server-port request-map) 4347))
-          (is (= (:ssl-client-cert request-map) nil)))))))
+          (is (= (:ssl-client-cert request-map) nil))))))
 
-(testing "websockets"
-  (let [events  (atom [])
-        result  (promise)
-        ws-opts {:on-open    (fn [_]
-                               (swap! events conj :open))
-                 :on-message (fn [{:keys [data]}]
-                               (swap! events conj data))
-                 :on-close   (fn [_]
-                               (deliver result (swap! events conj :close)))}]
-    (with-server (websocket-handler ws-opts) {:port 4347}
-      (let [socket (gniazdo/connect "ws://localhost:4347/")]
-        (gniazdo/send-msg socket "hello")
-        (gniazdo/close socket))
-      (is (= [:open "hello" :close] (deref result 2000 :fail))))))
+  (testing "websockets"
+    (let [events  (atom [])
+          result  (promise)
+          ws-opts {:on-open    (fn [_]
+                                 (swap! events conj :open))
+                   :on-message (fn [{:keys [data]}]
+                                 (swap! events conj data))
+                   :on-close   (fn [_]
+                                 (deliver result (swap! events conj :close)))}]
+      (with-server (websocket-handler ws-opts) {:port 4347}
+        (let [socket (gniazdo/connect "ws://localhost:4347/")]
+          (gniazdo/send-msg socket "hello")
+          (gniazdo/close socket))
+        (is (= [:open "hello" :close] (deref result 2000 :fail)))))))

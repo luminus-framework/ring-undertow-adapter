@@ -1,22 +1,21 @@
 (ns ring.adapter.undertow.websocket
   (:refer-clojure :exclude [send])
   (:import
-    [org.xnio Buffers]
-    [java.nio ByteBuffer]
     [io.undertow.server HttpServerExchange]
-    [io.undertow.websockets 
+    [io.undertow.websockets
      WebSocketConnectionCallback
      WebSocketProtocolHandshakeHandler]
-    [io.undertow.websockets.core 
+    [io.undertow.websockets.core
      AbstractReceiveListener
      BufferedBinaryMessage
      BufferedTextMessage
      CloseMessage
      WebSocketChannel
-     WebSockets]
+     WebSockets WebSocketCallback]
     [io.undertow.websockets.spi WebSocketHttpExchange]
     [org.xnio ChannelListener]
-    [ring.adapter.undertow Util]))
+    [ring.adapter.undertow Util]
+    [java.nio ByteBuffer]))
 
 (defn ws-listener
   "Default websocket listener
@@ -27,11 +26,10 @@
    :on-error   | fn taking map of keys :channel, :error
 
    Each key defaults to no action"
-  [{:keys [on-message on-close-message on-close on-error]
-    :or   {on-message         (constantly nil)
-           on-close           (constantly nil)
-           on-close-message   (constantly nil)
-           on-error           (constantly nil)}}]
+  [{:keys [on-message on-close on-error]
+    :or   {on-message (constantly nil)
+           on-close   (constantly nil)
+           on-error   (constantly nil)}}]
   (proxy [AbstractReceiveListener] []
     (onFullTextMessage [^WebSocketChannel channel ^BufferedTextMessage message]
       (on-message {:channel channel
@@ -43,19 +41,17 @@
             (on-message {:channel channel
                          :data    (Util/toArray payload)}))
           (finally (.free pooled)))))
-    (onClose [^WebSocketChannel ws-channel ^io.undertow.websockets.core.StreamSourceFrameChannel frame-channel]
-                    (on-close {:ws-channel    ws-channel
-                               :frame-channel frame-channel}))
     (onCloseMessage [^CloseMessage message ^WebSocketChannel channel]
-      (on-close-message {:channel channel
-                         :message message}))
+      (on-close {:channel channel
+                 :message message}))
     (onError [^WebSocketChannel channel ^Throwable error]
       (on-error {:channel channel
                  :error   error}))))
 
 (defn ws-callback
-  [{:keys [on-open listener]
-    :or   {on-open (constantly nil)}
+  [{:keys [on-open on-close listener]
+    :or   {on-open  (constantly nil)
+           on-close (constantly nil)}
     :as   ws-opts}]
   (let [listener (if (instance? ChannelListener listener)
                    listener
@@ -63,6 +59,10 @@
     (reify WebSocketConnectionCallback
       (^void onConnect [_ ^WebSocketHttpExchange exchange ^WebSocketChannel channel]
         (on-open {:channel channel})
+        (.addCloseTask channel (reify ChannelListener
+                                 (handleEvent [_ ^WebSocketChannel channel]
+                                   (on-close {:channel channel
+                                              :message (CloseMessage. CloseMessage/GOING_AWAY nil)}))))
         (.set (.getReceiveSetter channel) listener)
         (.resumeReceives channel)))))
 
@@ -72,16 +72,16 @@
 
 (defn send-text
   ([message channel] (send-text message channel nil))
-  ([message channel callback]
+  ([^String message ^WebSocketChannel channel ^WebSocketCallback callback]
    (WebSockets/sendText message channel callback))
-  ([message channel callback timeout]
+  ([^String message ^WebSocketChannel channel ^WebSocketCallback callback ^long timeout]
    (WebSockets/sendText message channel callback timeout)))
 
 (defn send-binary
   ([message channel] (send-text message channel nil))
-  ([message channel callback]
+  ([^ByteBuffer message ^WebSocketChannel channel ^WebSocketCallback callback]
    (WebSockets/sendBinary message channel callback))
-  ([message channel callback timeout]
+  ([^ByteBuffer message ^WebSocketChannel channel ^WebSocketCallback callback ^long timeout]
    (WebSockets/sendBinary message channel callback timeout)))
 
 (defn send

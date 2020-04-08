@@ -1,4 +1,4 @@
-(ns ring.adapter.undertow.middleware
+(ns ring.adapter.undertow.middleware.session
   (:require [ring.middleware.session :as ring-session])
   (:import [io.undertow.util Sessions]
            [io.undertow.server HttpServerExchange]

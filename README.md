@@ -5,13 +5,13 @@ ring-undertow-adapter is a [Ring](https://github.com/ring-clojure/ring) server b
 
 ## Installation
 
-TODO
+[![Clojars Project](https://img.shields.io/clojars/v/luminus/ring-undertow-adapter.svg)](https://clojars.org/luminus/ring-undertow-adapter)
 
 ## Usage
 
 ### HTTP Handler
 
-HTTP handler returns an Undertow server instance. To stop call (.stop <handler instance>).
+HTTP handler returns an Undertow server instance. To stop call `(.stop <handler instance>)`.
 The handler is initialized using a map with the following keys:
 
 * `:configurator` - a function called with the Undertow Builder instance

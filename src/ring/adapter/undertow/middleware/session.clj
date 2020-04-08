@@ -95,9 +95,7 @@
      * :timeout The number of seconds of inactivity before session expires [1800]
      * :cookie-name The name of the cookie that holds the session key [\"JSESSIONID\"]
   A :timeout value less than or equal to zero indicates the session
-  should never expire.
-  When running embedded, i.e. not deployed to a WildFly/EAP container,
-  another option is available:
+  should never expire.  
      * :cookie-attrs A map of attributes to associate with the session cookie [nil]
   And the following :cookie-attrs keys are supported:
      * :path      - the subpath the cookie is valid for

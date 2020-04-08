@@ -62,6 +62,29 @@ containing a `:undertow/websocket` containing the configuration map:
     :on-close   (fn [_] (println "WS closeed!"))}})
 ```
 
+### Middleware
+
+Undertow adapter provides session middleware using Undertow session. 
+By default, sessions will timeout after 30 minutes of inactivity.
+  
+Supported options:
+
+* `:timeout` The number of seconds of inactivity before session expires [1800], value less than or equal to zero indicates the session
+  should never expire.
+* `:cookie-name` The name of the cookie that holds the session key [\"JSESSIONID\"]
+* `:cookie-attrs` A map of attributes to associate with the session cookie with the following options:
+  * `:path`      - the subpath the cookie is valid for
+  * `:domain`    - the domain the cookie is valid for
+  * `:max-age`   - the maximum age in seconds of the cookie
+  * `:secure`    - set to true if the cookie requires HTTPS, prevent HTTP access
+  * `:http-only` - set to true if the cookie is valid for HTTP and HTTPS only (ie. prevent JavaScript access)
+
+```clojure
+(require '[ring.adapter.undertow.middleware.session :refer [wrap-session]])
+
+(wrap-session handler {:http-only true})
+```
+
 ## License
 
 Distributed under ISC License.

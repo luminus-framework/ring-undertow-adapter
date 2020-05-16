@@ -1,4 +1,4 @@
-(defproject luminus/ring-undertow-adapter "1.0.5-SNAPSHOT"
+(defproject luminus/ring-undertow-adapter "1.0.5"
   :description "Ring Underow adapter"
   :url "http://github.com/luminus-framework/ring-adapter-undertow"
   :license {:name "ISC License"
@@ -10,6 +10,6 @@
                                       [stylefruits/gniazdo "1.1.3"]
                                       [metosin/reitit-ring "0.4.2"]]}
              :precomp {:prep-tasks ["compile"]}}
-  :javac-options ["-target" "1.10" "-source" "1.8"]
+  :javac-options ["-target" "1.8" "-source" "1.8"]
   :java-source-paths ["src"]
   :compile-path "target")

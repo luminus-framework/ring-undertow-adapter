@@ -1,4 +1,4 @@
-## 1.0.5 - Unreleased
+## 1.0.5 - May 15, 2020
 - Added: `:handler-proxy` key to provide custom user `handler-proxy`. Must implement `HttpHandler`
 - Fixed: javac target incorrectly set to 1.10. Reverted to 1.8
 

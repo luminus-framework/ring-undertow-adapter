@@ -67,30 +67,32 @@
 (defn ^Undertow run-undertow
   "Start an Undertow webserver using given handler and the supplied options:
 
-  :configurator   - a function called with the Undertow Builder instance
-  :host           - the hostname to listen on
-  :port           - the port to listen on (defaults to 80)
-  :ssl-port       - a number, requires either :ssl-context, :keystore, or :key-managers
-  :keystore - the filepath (a String) to the keystore
-  :key-password - the password for the keystore
-  :truststore - if separate from the keystore
-  :trust-password - if :truststore passed
-  :ssl-context - a valid javax.net.ssl.SSLContext
-  :key-managers - a valid javax.net.ssl.KeyManager []
-  :trust-managers - a valid javax.net.ssl.TrustManager []
-  :http2?
-  :io-threads - # threads handling IO, defaults to available processors
-  :worker-threads - # threads invoking handlers, defaults to (* io-threads 8)
-  :buffer-size - a number, defaults to 16k for modern servers
-  :direct-buffers? - boolean, defaults to true
-  :dispatch?      - dispatch handlers off the I/O threads (default: true)
+  :configurator     - a function called with the Undertow Builder instance
+  :host             - the hostname to listen on
+  :port             - the port to listen on (defaults to 80)
+  :ssl-port         - a number, requires either :ssl-context, :keystore, or :key-managers
+  :keystore         - the filepath (a String) to the keystore
+  :key-password     - the password for the keystore
+  :truststore       - if separate from the keystore
+  :trust-password   - if :truststore passed
+  :ssl-context      - a valid javax.net.ssl.SSLContext
+  :key-managers     - a valid javax.net.ssl.KeyManager []
+  :trust-managers   - a valid javax.net.ssl.TrustManager []
+  :http2?           - flag to enable http2
+  :io-threads       - # threads handling IO, defaults to available processors
+  :worker-threads   - # threads invoking handlers, defaults to (* io-threads 8)
+  :buffer-size      - a number, defaults to 16k for modern servers
+  :direct-buffers?  - boolean, defaults to true
+  :dispatch?        - dispatch handlers off the I/O threads (default: true)
+  :handler-proxy    - an optional custom Undertow HttpHandler. Ignores the :dispatch? key when present
 
   Returns an Undertow server instance. To stop call (.stop server)."
-  [handler {:keys [dispatch?]
+  [handler {:keys [dispatch? handler-proxy]
             :or   {dispatch? true}
             :as   options}]
   (let [^Undertow$Builder builder (Undertow/builder)
-        handler-proxy             (if dispatch? dispatching-proxy on-io-proxy)]
+        handler-proxy             (or handler-proxy
+                                      (if dispatch? dispatching-proxy on-io-proxy))]
 
     (.setHandler builder (handler-proxy handler))
     (tune builder options)

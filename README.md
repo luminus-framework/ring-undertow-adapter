@@ -25,12 +25,13 @@ The handler is initialized using a map with the following keys:
 * `:ssl-context` - a valid javax.net.ssl.SSLContext
 * `:key-managers` - a valid javax.net.ssl.KeyManager []
 * `:trust-managers` - a valid javax.net.ssl.TrustManager []
-* `:http2?` - boolean
+* `:http2?` - a flag to enable http2. Boolean
 * `:io-threads` - # threads handling IO, defaults to available processors
 * `:worker-threads` - # threads invoking handlers, defaults to (* io-threads 8)
 * `:buffer-size` - a number, defaults to 16k for modern servers
 * `:direct-buffers?` - boolean, defaults to true
 * `:dispatch?`      - dispatch handlers off the I/O threads (default: true)
+* `handler-proxy` - an optional custom handler proxy function taking handler as single argument
 
 ```clojure
 (require '[ring.adapter.undertow :refer [run-undertow]])

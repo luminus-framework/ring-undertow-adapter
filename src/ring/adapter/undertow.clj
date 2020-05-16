@@ -84,7 +84,7 @@
   :buffer-size      - a number, defaults to 16k for modern servers
   :direct-buffers?  - boolean, defaults to true
   :dispatch?        - dispatch handlers off the I/O threads (default: true)
-  :handler-proxy    - an optional custom Undertow HttpHandler. Ignores the :dispatch? key when present
+  :handler-proxy    - an optional custom handler proxy function taking handler as single argument
 
   Returns an Undertow server instance. To stop call (.stop server)."
   [handler {:keys [dispatch? handler-proxy]

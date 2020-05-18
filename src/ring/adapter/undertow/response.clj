@@ -22,7 +22,7 @@
   InputStream
   (respond [body ^HttpServerExchange exchange]
     (if (.isInIoThread exchange)
-      (.dispatch exchange ^Runnable (fn [] (respond body exchange)))
+      (.dispatch exchange ^Runnable (^:once fn* [] (respond body exchange)))
       (with-open [stream ^InputStream body]
         (.startBlocking exchange)
         (io/copy stream (.getOutputStream exchange))

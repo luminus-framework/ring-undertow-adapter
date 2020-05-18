@@ -1,4 +1,4 @@
-## 1.1.0 - Unreleased
+## 1.1.0 - May 18, 2020
 - **Breaking**: Removed ISeq body response support
 - Added: Support for ByteBuffer responses
 - Added: `websocket?` key to exchange request map

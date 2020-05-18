@@ -17,9 +17,10 @@
      :scheme             (-> exchange .getRequestScheme .toString .toLowerCase keyword)
      :request-method     (-> exchange .getRequestMethod .toString .toLowerCase keyword)
      :protocol           (-> exchange .getProtocol .toString)
-     :headers            (-> exchange .getRequestHeaders get-headers)
+     :headers            (get-headers headers)
      :content-type       ctype
      :content-length     (-> exchange .getRequestContentLength)
-     :character-encoding (or (when ctype (Headers/extractTokenFromHeader ctype "charset")) "ISO-8859-1") ;; TODO: deprecated
+     :character-encoding (or (when ctype (Headers/extractQuotedValueFromHeader ctype "charset")) "ISO-8859-1")
      :body               (when (.isBlocking exchange) (.getInputStream exchange))
-     :context            (.getResolvedPath exchange)}))
+     :context            (.getResolvedPath exchange)
+     :websocket?         (= "websocket" (.getFirst headers Headers/UPGRADE))}))

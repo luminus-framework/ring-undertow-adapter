@@ -1,3 +1,11 @@
+## 1.1.0 - Unreleased
+- **Breaking**: Removed ISeq body response support
+- Added: Support for ByteBuffer responses
+- Added: `websocket?` key to exchange request map
+- Added: Exception on unsupported response body class
+- Improved: InputStream response handling based on IO blocking
+- Misc: Removed use of deprecated `extractTokenFromHeader` 
+
 ## 1.0.6 - May 15, 2020
 - Bumped to `io.undertow/undertow-core "2.1.1.Final"`
 - Bumped to `ring/ring-core "1.8.1"`

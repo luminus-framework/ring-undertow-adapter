@@ -3,23 +3,31 @@
     [clojure.test :refer :all]
     [ring.adapter.undertow :refer :all]
     [clj-http.client :as http]
-    [gniazdo.core :as gniazdo]))
+    [gniazdo.core :as gniazdo]
+    [clojure.java.io :as io])
+  (:import [java.nio ByteBuffer]))
 
 (defn- hello-world [request]
   {:status  200
    :headers {"Content-Type" "text/plain"}
    :body    "Hello World"})
 
+(defn- base-handler [body-fn]
+  (constantly
+    {:status  200
+     :headers {"Content-Type" "text/plain"}
+     :body    (body-fn)}))
+
 (defn- content-type-handler [content-type]
   (constantly
-   {:status  200
-    :headers {"Content-Type" content-type}
-    :body    ""}))
+    {:status  200
+     :headers {"Content-Type" content-type}
+     :body    ""}))
 
 (defn- echo-handler [request]
-  {:status 200
+  {:status  200
    :headers {"request-map" (str (dissoc request :body))}
-   :body (:body request)})
+   :body    (:body request)})
 
 (defn- websocket-handler [ws-opts]
   (fn [request]
@@ -44,14 +52,28 @@
     (with-server (content-type-handler "text/plain") {:port 4347}
       (let [response (http/get "http://localhost:4347")]
         (is (.contains
-             (get-in response [:headers "content-type"])
-             "text/plain")))))
+              (get-in response [:headers "content-type"])
+              "text/plain")))))
 
   (testing "custom content-type"
     (with-server (content-type-handler "text/plain;charset=UTF-16;version=1") {:port 4347}
       (let [response (http/get "http://localhost:4347")]
         (is (= (get-in response [:headers "content-type"])
                "text/plain;charset=UTF-16;version=1")))))
+
+  (defn ^ByteBuffer str-to-bb
+    [^String s]
+    (ByteBuffer/wrap (.getBytes s "utf-8")))
+
+  (testing "ByteBuffer response"
+    (with-server (base-handler #(str-to-bb "A BB")) {:port 4347}
+      (let [response (http/get "http://localhost:4347")]
+        (is (= "A BB" (:body response))))))
+
+  (testing "InputStream response"
+    (with-server (base-handler #(io/input-stream (.getBytes "InputStream here"))) {:port 4347}
+      (let [response (http/get "http://localhost:4347")]
+        (is (= "InputStream here" (:body response))))))
 
   (testing "request translation"
     (with-server echo-handler {:port 4347}
@@ -69,7 +91,8 @@
           (is (= (:scheme request-map) :http))
           (is (= (:server-name request-map) "localhost"))
           (is (= (:server-port request-map) 4347))
-          (is (= (:ssl-client-cert request-map) nil))))))
+          (is (= (:ssl-client-cert request-map) nil))
+          (is (= (:websocket? request-map) false))))))
 
   (testing "websockets"
     (let [events  (atom [])

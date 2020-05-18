@@ -5,13 +5,7 @@
   (:import
     [java.nio ByteBuffer]
     [java.io File InputStream]
-    [io.undertow.io Sender]
-    [io.undertow.server HttpServerExchange]
-    [clojure.lang ISeq]))
-
-(defn ^ByteBuffer str-to-bb
-  [^String s]
-  (ByteBuffer/wrap (.getBytes s "utf-8")))
+    [io.undertow.server HttpServerExchange]))
 
 (defprotocol RespondBody
   (respond [_ ^HttpServerExchange exchange]))
@@ -19,28 +13,32 @@
 (extend-protocol RespondBody
   String
   (respond [body ^HttpServerExchange exchange]
-    (.send ^Sender (.getResponseSender exchange) body))
+    (.send (.getResponseSender exchange) ^String body))
+
+  ByteBuffer
+  (respond [body ^HttpServerExchange exchange]
+    (.send (.getResponseSender exchange) ^ByteBuffer body))
 
   InputStream
   (respond [body ^HttpServerExchange exchange]
-    (with-open [^InputStream b body]
-      (io/copy b (.getOutputStream exchange))))
+    (if (.isInIoThread exchange)
+      (.dispatch exchange ^Runnable (fn [] (respond body exchange)))
+      (with-open [stream ^InputStream body]
+        (.startBlocking exchange)
+        (io/copy stream (.getOutputStream exchange))
+        (.endExchange exchange))))
 
   File
   (respond [f exchange]
     (respond (io/input-stream f) exchange))
 
-  ISeq
-  (respond [coll ^HttpServerExchange exchange]
-    (reduce
-      (fn [^Sender sender i]
-        (.send sender (str-to-bb i))
-        sender)
-      (.getResponseSender exchange)
-      coll))
+  Object
+  (respond [body _]
+    (throw (UnsupportedOperationException. (str "Body class not supported: " (class body)))))
 
   nil
-  (respond [_ _]))
+  (respond [_ ^HttpServerExchange exchange]
+    (.endExchange exchange)))
 
 (defn set-exchange-response
   [^HttpServerExchange exchange {:keys [status headers body]}]

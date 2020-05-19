@@ -31,7 +31,7 @@ The handler is initialized using a map with the following keys:
 * `:buffer-size` - a number, defaults to 16k for modern servers
 * `:direct-buffers?` - boolean, defaults to true
 * `:dispatch?`      - dispatch handlers off the I/O threads (default: true)
-* `handler-proxy` - an optional custom handler proxy function taking handler as single argument
+* `:handler-proxy` - an optional custom handler proxy function taking handler as single argument
 
 ```clojure
 (require '[ring.adapter.undertow :refer [run-undertow]])

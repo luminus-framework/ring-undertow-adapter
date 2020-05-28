@@ -37,13 +37,13 @@
   (respond [f exchange]
     (respond (io/input-stream f) exchange))
 
-  Object
-  (respond [body _]
-    (throw (UnsupportedOperationException. (str "Body class not supported: " (class body)))))
-
   ISeq
   (respond [body ^HttpServerExchange exchange]
     (respond (reduce str body) exchange))
+
+  Object
+  (respond [body _]
+    (throw (UnsupportedOperationException. (str "Body class not supported: " (class body)))))
 
   nil
   (respond [_ ^HttpServerExchange exchange]

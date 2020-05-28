@@ -1,3 +1,6 @@
+## 1.1.1 - Unreleased
+- Support seqs and byte arrays, to match ring protocol's support
+
 ## 1.1.0 - May 18, 2020
 - **Breaking**: Removed ISeq body response support
 - Added: Support for ByteBuffer responses

@@ -39,6 +39,37 @@
        ~@body
        (finally (.stop server#)))))
 
+(defn ^ByteBuffer str-to-bb
+  [^String s]
+  (ByteBuffer/wrap (.getBytes s "utf-8")))
+
+(deftest response-formats
+  "Aim is to match Ring StreamableResponseBody protocol in output"
+  (testing "ByteBuffer response"
+    (with-server (base-handler #(str-to-bb "A BB")) {:port 4347}
+      (let [response (http/get "http://localhost:4347")]
+        (is (= "A BB" (:body response))))))
+
+  (testing "Byte array response"
+    (with-server (base-handler #(.getBytes "Hello World")) {:port 4347}
+      (let [response (http/get "http://localhost:4347")]
+        (is (= "Hello World" (:body response))))))
+
+  (testing "Seq response"
+    (with-server (base-handler #(list "Hello" " " "World")) {:port 4347}
+      (let [response (http/get "http://localhost:4347")]
+        (is (= "Hello World" (:body response))))))
+
+  (testing "InputStream response"
+    (with-server (base-handler #(io/input-stream (.getBytes "InputStream here"))) {:port 4347}
+      (let [response (http/get "http://localhost:4347")]
+        (is (= "InputStream here" (:body response))))))
+
+  (testing "nil response"
+    (with-server (base-handler (constantly nil)) {:port 4347}
+      (let [response (http/get "http://localhost:4347")]
+        (is (= "" (:body response)))))))
+
 (deftest test-run-undertow
   (testing "HTTP server"
     (with-server hello-world {:port 4347}
@@ -60,20 +91,6 @@
       (let [response (http/get "http://localhost:4347")]
         (is (= (get-in response [:headers "content-type"])
                "text/plain;charset=UTF-16;version=1")))))
-
-  (defn ^ByteBuffer str-to-bb
-    [^String s]
-    (ByteBuffer/wrap (.getBytes s "utf-8")))
-
-  (testing "ByteBuffer response"
-    (with-server (base-handler #(str-to-bb "A BB")) {:port 4347}
-      (let [response (http/get "http://localhost:4347")]
-        (is (= "A BB" (:body response))))))
-
-  (testing "InputStream response"
-    (with-server (base-handler #(io/input-stream (.getBytes "InputStream here"))) {:port 4347}
-      (let [response (http/get "http://localhost:4347")]
-        (is (= "InputStream here" (:body response))))))
 
   (testing "request translation"
     (with-server echo-handler {:port 4347}

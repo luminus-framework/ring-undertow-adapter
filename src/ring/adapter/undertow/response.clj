@@ -3,14 +3,19 @@
     [ring.adapter.undertow.headers :refer [set-headers]]
     [clojure.java.io :as io])
   (:import
+    [clojure.lang ISeq]
+    [io.undertow.server HttpServerExchange]
     [java.nio ByteBuffer]
-    [java.io File InputStream]
-    [io.undertow.server HttpServerExchange]))
+    [java.io File InputStream]))
 
 (defprotocol RespondBody
   (respond [_ ^HttpServerExchange exchange]))
 
 (extend-protocol RespondBody
+  (Class/forName "[B")
+  (respond [^bytes body ^HttpServerExchange exchange]
+    (respond (ByteBuffer/wrap body) exchange))
+
   String
   (respond [body ^HttpServerExchange exchange]
     (.send (.getResponseSender exchange) ^String body))
@@ -35,6 +40,10 @@
   Object
   (respond [body _]
     (throw (UnsupportedOperationException. (str "Body class not supported: " (class body)))))
+
+  ISeq
+  (respond [body ^HttpServerExchange exchange]
+    (respond (reduce str body) exchange))
 
   nil
   (respond [_ ^HttpServerExchange exchange]

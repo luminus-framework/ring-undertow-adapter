@@ -48,6 +48,7 @@ The handler is initialized using a map with the following keys:
 A WebSocket handler is created using a Ring handler function that returns a map
 containing a `:undertow/websocket` containing the configuration map:
 
+* `:on-open` - fn taking a map with the key `:channel` (optional)
 * `:on-message` - fn taking map of keys `:channel`, `:data` (optional)
 * `:on-close-message` - fn taking map of keys `:channel`, `:message` (optional)
 * `:on-close` - fn taking map of keys `:channel`, `:ws-channel` (optional)
@@ -58,9 +59,9 @@ containing a `:undertow/websocket` containing the configuration map:
 
 (fn [request]
   {:undertow/websocket 
-   {:on-open (fn [_] (println "WS open!"))
+   {:on-open (fn [{:keys [channel]}] (println "WS open!"))
     :on-message (fn [{:keys [channel data]}] (ws/send "message received" channel))
-    :on-close   (fn [_] (println "WS closeed!"))}})
+    :on-close   (fn [{:keys [channel ws-channel]}] (println "WS closeed!"))}})
 ```
 
 ### Middleware

@@ -122,7 +122,7 @@
   :direct-buffers?  - boolean, defaults to true
   :dispatch?        - dispatch handlers off the I/O threads (default: true)
   :websocket?       - built-in handler support for websocket callbacks
-  :ring-async?      - ring async support
+  :ring-async?      - ring async flag. When true, expect a ring async three arity handler function
   :handler-proxy    - an optional custom handler proxy function taking handler as single argument
 
   Returns an Undertow server instance. To stop call (.stop server)."

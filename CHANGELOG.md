@@ -1,5 +1,7 @@
 ## 1.1.1 - Unreleased
 - Support seqs and byte arrays, to match ring protocol's support
+- Add `:websocket?` configuration key to turn on/off websocket handling
+- Add `:ring-async?` configuration key to support ring async handlers
 
 ## 1.1.0 - May 18, 2020
 - **Breaking**: Removed ISeq body response support

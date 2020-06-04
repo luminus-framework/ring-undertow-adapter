@@ -52,19 +52,19 @@
                                                           :body   (.getMessage exception)})))))))))
 
 (defn ^:no-doc handler!
-  [handler builder {:keys [dispatch? handler-proxy websocket? ring-async?]
-                    :or   {dispatch?   true
-                           websocket?  true
-                           ring-async? false}
+  [handler builder {:keys [dispatch? handler-proxy websocket? async?]
+                    :or   {dispatch?  true
+                           websocket? true
+                           async?     false}
                     :as   options}]
   (let [target-handler-proxy (cond
                                (some? handler-proxy) handler-proxy
-                               ring-async? (async-undertow-handler options)
+                               async? (async-undertow-handler options)
                                :else (undertow-handler options))]
     (cond->> (target-handler-proxy handler)
 
              (and (nil? handler-proxy)
-                  (not ring-async?)
+                  (not async?)
                   dispatch?)
              (BlockingHandler.)
 
@@ -122,7 +122,7 @@
   :direct-buffers?  - boolean, defaults to true
   :dispatch?        - dispatch handlers off the I/O threads (default: true)
   :websocket?       - built-in handler support for websocket callbacks
-  :ring-async?      - ring async flag. When true, expect a ring async three arity handler function
+  :async?           - ring async flag. When true, expect a ring async three arity handler function
   :handler-proxy    - an optional custom handler proxy function taking handler as single argument
 
   Returns an Undertow server instance. To stop call (.stop server)."

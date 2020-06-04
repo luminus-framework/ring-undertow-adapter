@@ -147,8 +147,8 @@
 
 (deftest undertow-ring-async
   (testing "ring async test"
-    (with-server hello-world-cps {:port        test-port
-                                  :ring-async? true}
+    (with-server hello-world-cps {:port   test-port
+                                  :async? true}
       (let [response (http/get test-url)]
         (is (= (:status response) 200))
         (is (.startsWith (get-in response [:headers "content-type"])
@@ -157,8 +157,8 @@
 
   (testing "ring async future test"
     (reset! thread-exceptions [])
-    (with-server hello-world-cps-future {:port        test-port
-                                         :ring-async? true}
+    (with-server hello-world-cps-future {:port   test-port
+                                         :async? true}
       (let [response (http/get test-url)]
         (Thread/sleep 100)
         (is (empty? @thread-exceptions))

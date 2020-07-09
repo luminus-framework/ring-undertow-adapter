@@ -7,6 +7,10 @@
     [clojure.java.io :as io])
   (:import [java.nio ByteBuffer]))
 
+(def test-port 4347)
+
+(def test-url (str "http://localhost:" test-port))
+
 (defn- hello-world [request]
   {:status  200
    :headers {"Content-Type" "text/plain"}
@@ -46,54 +50,54 @@
 (deftest response-formats
   "Aim is to match Ring StreamableResponseBody protocol in output"
   (testing "ByteBuffer response"
-    (with-server (base-handler #(str-to-bb "A BB")) {:port 4347}
-      (let [response (http/get "http://localhost:4347")]
+    (with-server (base-handler #(str-to-bb "A BB")) {:port test-port}
+      (let [response (http/get test-url)]
         (is (= "A BB" (:body response))))))
 
   (testing "Byte array response"
-    (with-server (base-handler #(.getBytes "Hello World")) {:port 4347}
-      (let [response (http/get "http://localhost:4347")]
+    (with-server (base-handler #(.getBytes "Hello World")) {:port test-port}
+      (let [response (http/get test-url)]
         (is (= "Hello World" (:body response))))))
 
   (testing "Seq response"
-    (with-server (base-handler #(list "Hello" " " "World")) {:port 4347}
-      (let [response (http/get "http://localhost:4347")]
+    (with-server (base-handler #(list "Hello" " " "World")) {:port test-port}
+      (let [response (http/get test-url)]
         (is (= "Hello World" (:body response))))))
 
   (testing "InputStream response"
-    (with-server (base-handler #(io/input-stream (.getBytes "InputStream here"))) {:port 4347}
-      (let [response (http/get "http://localhost:4347")]
+    (with-server (base-handler #(io/input-stream (.getBytes "InputStream here"))) {:port test-port}
+      (let [response (http/get test-url)]
         (is (= "InputStream here" (:body response))))))
 
   (testing "nil response"
-    (with-server (base-handler (constantly nil)) {:port 4347}
-      (let [response (http/get "http://localhost:4347")]
+    (with-server (base-handler (constantly nil)) {:port test-port}
+      (let [response (http/get test-url)]
         (is (= "" (:body response)))))))
 
 (deftest test-run-undertow
   (testing "HTTP server"
-    (with-server hello-world {:port 4347}
-      (let [response (http/get "http://localhost:4347")]
+    (with-server hello-world {:port test-port}
+      (let [response (http/get test-url)]
         (is (= (:status response) 200))
         (is (.startsWith (get-in response [:headers "content-type"])
                          "text/plain"))
         (is (= (:body response) "Hello World")))))
 
   (testing "default character encoding"
-    (with-server (content-type-handler "text/plain") {:port 4347}
-      (let [response (http/get "http://localhost:4347")]
+    (with-server (content-type-handler "text/plain") {:port test-port}
+      (let [response (http/get test-url)]
         (is (.contains
               (get-in response [:headers "content-type"])
               "text/plain")))))
 
   (testing "custom content-type"
-    (with-server (content-type-handler "text/plain;charset=UTF-16;version=1") {:port 4347}
-      (let [response (http/get "http://localhost:4347")]
+    (with-server (content-type-handler "text/plain;charset=UTF-16;version=1") {:port test-port}
+      (let [response (http/get test-url)]
         (is (= (get-in response [:headers "content-type"])
                "text/plain;charset=UTF-16;version=1")))))
 
   (testing "request translation"
-    (with-server echo-handler {:port 4347}
+    (with-server echo-handler {:port test-port}
       (let [response (http/post "http://localhost:4347/foo/bar/baz?surname=jones&age=123" {:body "hello"})]
         (is (= (:status response) 200))
         (is (= (:body response) "hello"))
@@ -107,7 +111,7 @@
           (is (= (:remote-addr request-map) "127.0.0.1"))
           (is (= (:scheme request-map) :http))
           (is (= (:server-name request-map) "localhost"))
-          (is (= (:server-port request-map) 4347))
+          (is (= (:server-port request-map) test-port))
           (is (= (:ssl-client-cert request-map) nil))
           (is (= (:websocket? request-map) false))))))
 
@@ -120,8 +124,55 @@
                                  (swap! events conj data))
                    :on-close   (fn [_]
                                  (deliver result (swap! events conj :close)))}]
-      (with-server (websocket-handler ws-opts) {:port 4347}
+      (with-server (websocket-handler ws-opts) {:port test-port}
         (let [socket (gniazdo/connect "ws://localhost:4347/")]
           (gniazdo/send-msg socket "hello")
           (gniazdo/close socket))
         (is (= [:open "hello" :close] (deref result 2000 :fail)))))))
+
+(def thread-exceptions (atom []))
+
+(defn- hello-world-cps [request respond raise]
+  (respond {:status  200
+            :headers {"Content-Type" "text/plain"}
+            :body    "Hello World"}))
+
+(defn- hello-world-cps-future [request respond raise]
+  (future
+    (try (respond {:status  200
+                   :headers {"Content-Type" "text/plain"}
+                   :body    "Hello World"})
+         (catch Exception ex
+           (swap! thread-exceptions conj ex)))))
+
+(deftest undertow-ring-async
+  (testing "ring async test"
+    (with-server hello-world-cps {:port   test-port
+                                  :async? true}
+      (let [response (http/get test-url)]
+        (is (= (:status response) 200))
+        (is (.startsWith (get-in response [:headers "content-type"])
+                         "text/plain"))
+        (is (= (:body response) "Hello World")))))
+
+  (testing "ring async future test"
+    (reset! thread-exceptions [])
+    (with-server hello-world-cps-future {:port   test-port
+                                         :async? true}
+      (let [response (http/get test-url)]
+        (Thread/sleep 100)
+        (is (empty? @thread-exceptions))
+        (is (= (:status response) 200))
+        (is (.startsWith (get-in response [:headers "content-type"])
+                         "text/plain"))
+        (is (= (:body response) "Hello World")))))
+
+  (testing "ring async with dispatch test"
+    (with-server hello-world-cps {:port      test-port
+                                  :dispatch? true
+                                  :async?    true}
+      (let [response (http/get test-url)]
+        (is (= (:status response) 200))
+        (is (.startsWith (get-in response [:headers "content-type"])
+                         "text/plain"))
+        (is (= (:body response) "Hello World"))))))

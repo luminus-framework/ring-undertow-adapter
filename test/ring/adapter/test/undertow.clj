@@ -165,4 +165,14 @@
         (is (= (:status response) 200))
         (is (.startsWith (get-in response [:headers "content-type"])
                          "text/plain"))
+        (is (= (:body response) "Hello World")))))
+
+  (testing "ring async with dispatch test"
+    (with-server hello-world-cps {:port      test-port
+                                  :dispatch? true
+                                  :async?    true}
+      (let [response (http/get test-url)]
+        (is (= (:status response) 200))
+        (is (.startsWith (get-in response [:headers "content-type"])
+                         "text/plain"))
         (is (= (:body response) "Hello World"))))))

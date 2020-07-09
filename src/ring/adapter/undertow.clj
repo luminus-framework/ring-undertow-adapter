@@ -13,7 +13,13 @@
 
 #_(set! *warn-on-reflection* true)
 
-;; TODO: cleanup
+(defn handle-request [websocket? exchange response-map]
+  (if websocket?
+    (if-let [ws-config (:undertow/websocket response-map)]
+      (->> ws-config (ws/ws-callback) (ws/ws-request exchange))
+      (set-exchange-response exchange response-map))
+    (set-exchange-response exchange response-map)))
+
 (defn ^:no-doc undertow-handler
   "Returns an function that returns Undertow HttpHandler implementation for the given Ring handler."
   [{:keys [dispatch? websocket?]
@@ -25,11 +31,7 @@
         (when-not dispatch? (.startBlocking exchange))
         (let [request-map  (build-exchange-map exchange)
               response-map (handler request-map)]
-          (if websocket?
-            (if-let [ws-config (:undertow/websocket response-map)]
-              (->> ws-config (ws/ws-callback) (ws/ws-request exchange))
-              (set-exchange-response exchange response-map))
-            (set-exchange-response exchange response-map)))))))
+          (handle-request websocket? exchange response-map))))))
 
 (defn ^:no-doc async-undertow-handler
   [{:keys [websocket?]
@@ -42,11 +44,7 @@
                      (handler
                        (build-exchange-map exchange)
                        (fn [response-map]
-                         (if websocket?
-                           (if-let [ws-config (:undertow/websocket response-map)]
-                             (->> ws-config (ws/ws-callback) (ws/ws-request exchange))
-                             (set-exchange-response exchange response-map))
-                           (set-exchange-response exchange response-map)))
+                         (handle-request websocket? exchange response-map))
                        (fn [^Throwable exception]
                          (set-exchange-response exchange {:status 500
                                                           :body   (.getMessage exception)})))))))))
@@ -64,7 +62,6 @@
     (cond->> (target-handler-proxy handler)
 
              (and (nil? handler-proxy)
-                  (not async?)
                   dispatch?)
              (BlockingHandler.)
 

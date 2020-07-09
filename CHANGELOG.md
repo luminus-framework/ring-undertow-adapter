@@ -1,4 +1,4 @@
-## 1.1.1 - Unreleased
+## 1.1.1 - July 9, 2020
 - Support seqs and byte arrays, to match ring protocol's support
 - Add `:websocket?` configuration key to turn on/off websocket handling
 - Add `:ring-async?` configuration key to support ring async handlers

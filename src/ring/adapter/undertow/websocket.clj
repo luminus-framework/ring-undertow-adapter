@@ -18,7 +18,8 @@
      WebSocketCallback]
     [io.undertow.websockets.spi WebSocketHttpExchange]
     [org.xnio ChannelListener]
-    [ring.adapter.undertow Util]))
+    [ring.adapter.undertow Util]
+    [clojure.lang IPersistentMap]))
 
 (defn ws-listener
   "Default websocket listener
@@ -72,7 +73,7 @@
         (.set (.getReceiveSetter channel) listener)
         (.resumeReceives channel)))))
 
-(defn ws-request [^HttpServerExchange exchange headers ^WebSocketConnectionCallback callback]
+(defn ws-request [^HttpServerExchange exchange ^IPersistentMap headers ^WebSocketConnectionCallback callback]
   (let [handler (WebSocketProtocolHandshakeHandler. callback)]
     (when headers
       (set-headers (.getResponseHeaders exchange) headers))

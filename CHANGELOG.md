@@ -1,3 +1,6 @@
+## 1.1.2 - August 12, 2020
+- support for custom headers in Websocket upgrade response [PR 9](https://github.com/luminus-framework/ring-undertow-adapter/pull/9)
+
 ## 1.1.1 - July 9, 2020
 - Support seqs and byte arrays, to match ring protocol's support
 - Add `:websocket?` configuration key to turn on/off websocket handling

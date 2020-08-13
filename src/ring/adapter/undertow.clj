@@ -16,7 +16,7 @@
 (defn handle-request [websocket? exchange response-map]
   (if websocket?
     (if-let [ws-config (:undertow/websocket response-map)]
-      (->> ws-config (ws/ws-callback) (ws/ws-request exchange))
+      (->> ws-config (ws/ws-callback) (ws/ws-request exchange (:headers response-map)))
       (set-exchange-response exchange response-map))
     (set-exchange-response exchange response-map)))
 

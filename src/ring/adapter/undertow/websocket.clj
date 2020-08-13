@@ -1,5 +1,6 @@
 (ns ring.adapter.undertow.websocket
   (:refer-clojure :exclude [send])
+  (:require [ring.adapter.undertow.headers :refer [set-headers]])
   (:import
     [java.nio ByteBuffer]
     [io.undertow.server HttpServerExchange]
@@ -17,7 +18,8 @@
      WebSocketCallback]
     [io.undertow.websockets.spi WebSocketHttpExchange]
     [org.xnio ChannelListener]
-    [ring.adapter.undertow Util]))
+    [ring.adapter.undertow Util]
+    [clojure.lang IPersistentMap]))
 
 (defn ws-listener
   "Default websocket listener
@@ -71,8 +73,10 @@
         (.set (.getReceiveSetter channel) listener)
         (.resumeReceives channel)))))
 
-(defn ws-request [^HttpServerExchange exchange ^WebSocketConnectionCallback callback]
+(defn ws-request [^HttpServerExchange exchange ^IPersistentMap headers ^WebSocketConnectionCallback callback]
   (let [handler (WebSocketProtocolHandshakeHandler. callback)]
+    (when headers
+      (set-headers (.getResponseHeaders exchange) headers))
     (.handleRequest handler exchange)))
 
 (defn send-text

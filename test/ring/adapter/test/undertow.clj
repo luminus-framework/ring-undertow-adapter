@@ -5,7 +5,9 @@
     [clj-http.client :as http]
     [gniazdo.core :as gniazdo]
     [clojure.java.io :as io])
-  (:import [java.nio ByteBuffer]))
+  (:import
+    [java.nio ByteBuffer]
+    [org.eclipse.jetty.websocket.api Session]))
 
 (def test-port 4347)
 
@@ -36,6 +38,10 @@
 (defn- websocket-handler [ws-opts]
   (fn [request]
     {:undertow/websocket ws-opts}))
+
+(defn- websocket-handler-with-headers [request]
+  {:headers            {"X-Test-Header" "Hello!"}
+   :undertow/websocket {}})
 
 (defmacro with-server [app options & body]
   `(let [server# (run-undertow ~app ~options)]
@@ -128,7 +134,19 @@
         (let [socket (gniazdo/connect "ws://localhost:4347/")]
           (gniazdo/send-msg socket "hello")
           (gniazdo/close socket))
-        (is (= [:open "hello" :close] (deref result 2000 :fail)))))))
+        (is (= [:open "hello" :close] (deref result 2000 :fail))))))
+
+  (testing "websocket custom headers"
+    (let [result  (promise)]
+      (with-server websocket-handler-with-headers {:port test-port}
+        (let [tester (fn [^Session session]
+                       (deliver result
+                         (-> session
+                           (.getUpgradeResponse)
+                           (.getHeader "X-Test-Header"))))
+              socket (gniazdo/connect "ws://localhost:4347/" :on-connect tester)]
+          (gniazdo/close socket))
+      (is (= "Hello!" (deref result 2000 :fail)))))))
 
 (def thread-exceptions (atom []))
 

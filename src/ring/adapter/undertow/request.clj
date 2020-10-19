@@ -9,7 +9,8 @@
   [^HttpServerExchange exchange]
   (let [headers (.getRequestHeaders exchange)
         ctype   (.getFirst headers Headers/CONTENT_TYPE)]
-    {:server-port        (-> exchange .getDestinationAddress .getPort)
+    {:server-exchange    exchange
+     :server-port        (-> exchange .getDestinationAddress .getPort)
      :server-name        (-> exchange .getHostName)
      :remote-addr        (-> exchange .getSourceAddress .getAddress .getHostAddress)
      :uri                (-> exchange .getRequestURI)

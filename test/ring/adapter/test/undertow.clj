@@ -32,7 +32,7 @@
 
 (defn- echo-handler [request]
   {:status  200
-   :headers {"request-map" (str (dissoc request :body))}
+   :headers {"request-map" (str (dissoc request :body :server-exchange))}
    :body    (:body request)})
 
 (defn- websocket-handler [ws-opts]

@@ -69,8 +69,9 @@
              (.setHandler builder))))
 
 (defn ^:no-doc tune!
-  [^Undertow$Builder builder {:keys [io-threads worker-threads buffer-size direct-buffers?]}]
+  [^Undertow$Builder builder {:keys [io-threads worker-threads buffer-size direct-buffers? max-entity-size]}]
   (cond-> builder
+          max-entity-size (.setServerOption UndertowOptions/MAX_ENTITY_SIZE (long max-entity-size))
           io-threads (.setIoThreads io-threads)
           worker-threads (.setWorkerThreads worker-threads)
           buffer-size (.setBufferSize buffer-size)
@@ -121,6 +122,7 @@
   :websocket?       - built-in handler support for websocket callbacks
   :async?           - ring async flag. When true, expect a ring async three arity handler function
   :handler-proxy    - an optional custom handler proxy function taking handler as single argument
+  :max-entity-size  - maximum size of a request entity
 
   Returns an Undertow server instance. To stop call (.stop server)."
   [handler options]

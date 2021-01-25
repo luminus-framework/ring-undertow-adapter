@@ -82,7 +82,7 @@
 
 (deftest test-run-undertow
   (testing "HTTP server"
-    (with-server hello-world {:port test-port}
+    (with-server hello-world {:port test-port :max-entity-size 50}
       (let [response (http/get test-url)]
         (is (= (:status response) 200))
         (is (.startsWith (get-in response [:headers "content-type"])

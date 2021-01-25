@@ -34,6 +34,7 @@ The handler is initialized using a map with the following keys:
 * `:websocket?` - built-in handler support for websocket callbacks
 * `:async?` - ring async flag. When true, expect a ring async three arity handler function
 * `:handler-proxy` - an optional custom handler proxy function taking handler as single argument
+* `:max-entity-size`  - maximum size of a request entity
 
 ```clojure
 (require '[ring.adapter.undertow :refer [run-undertow]])

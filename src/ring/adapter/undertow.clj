@@ -72,7 +72,7 @@
                                :else (undertow-handler options))]
     (cond->> (target-handler-proxy handler)
 
-             (not session-manager?)
+             session-manager?
              (wrap-with-session-handler (InMemorySessionManager. (str server-name "-session-manager") max-sessions))
 
              (and (nil? handler-proxy)

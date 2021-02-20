@@ -1,3 +1,10 @@
+## 1.2.0 - February 20, 2021
+
+- Add InMemorySessionManager from Undertow by default
+- Add configuration options: `session-manager?` (default: true), `max-sessions` (default: -1), `server-name` (default: "ring-undertow")
+- Bump to ring 1.9.1
+- Bump to undertow-core 2.2.4.Final
+
 ## 1.1.5 - February 20, 2021
 - Remove delay from session middleware. This is because using a different form of request mapping, i.e. non-lazy-map.
 

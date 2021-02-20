@@ -9,7 +9,10 @@
     [io.undertow Undertow Undertow$Builder UndertowOptions]
     [org.xnio Options SslClientAuthMode]
     [io.undertow.server HttpHandler]
-    [io.undertow.server.handlers BlockingHandler]))
+    [io.undertow.server.handlers BlockingHandler]
+    [io.undertow.server.session SessionAttachmentHandler
+                                SessionCookieConfig
+                                SessionManager InMemorySessionManager]))
 
 #_(set! *warn-on-reflection* true)
 
@@ -19,6 +22,10 @@
       (->> ws-config (ws/ws-callback) (ws/ws-request exchange (:headers response-map)))
       (set-exchange-response exchange response-map))
     (set-exchange-response exchange response-map)))
+
+(defn wrap-with-session-handler
+  [^SessionManager session-manager ^HttpHandler handler]
+  (SessionAttachmentHandler. handler session-manager (SessionCookieConfig.)))
 
 (defn ^:no-doc undertow-handler
   "Returns an function that returns Undertow HttpHandler implementation for the given Ring handler."
@@ -50,16 +57,23 @@
                                                           :body   (.getMessage exception)})))))))))
 
 (defn ^:no-doc handler!
-  [handler builder {:keys [dispatch? handler-proxy websocket? async?]
-                    :or   {dispatch?  true
-                           websocket? true
-                           async?     false}
+  [handler builder {:keys [dispatch? handler-proxy websocket? async? session-manager?
+                           max-sessions server-name]
+                    :or   {dispatch?        true
+                           websocket?       true
+                           async?           false
+                           session-manager? true
+                           max-sessions     -1
+                           server-name      "ring-undertow"}
                     :as   options}]
   (let [target-handler-proxy (cond
                                (some? handler-proxy) handler-proxy
                                async? (async-undertow-handler options)
                                :else (undertow-handler options))]
     (cond->> (target-handler-proxy handler)
+
+             (not session-manager?)
+             (wrap-with-session-handler (InMemorySessionManager. (str server-name "-session-manager") max-sessions))
 
              (and (nil? handler-proxy)
                   dispatch?)
@@ -123,6 +137,9 @@
   :async?           - ring async flag. When true, expect a ring async three arity handler function
   :handler-proxy    - an optional custom handler proxy function taking handler as single argument
   :max-entity-size  - maximum size of a request entity
+  :session-manager? - initialize undertow session manager (default: true)
+  :max-sessions     - maximum number of undertow session (default: -1)
+  :server-name      - for use in session manager (default: \"ring-undertow\")
 
   Returns an Undertow server instance. To stop call (.stop server)."
   [handler options]

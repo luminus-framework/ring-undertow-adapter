@@ -1,10 +1,10 @@
-(defproject luminus/ring-undertow-adapter "1.1.5"
+(defproject luminus/ring-undertow-adapter "1.2.0"
   :description "Ring Underow adapter"
   :url "http://github.com/luminus-framework/ring-adapter-undertow"
   :license {:name "ISC License"
             :url  "http://opensource.org/licenses/ISC"}
-  :dependencies [[io.undertow/undertow-core "2.1.3.Final"]
-                 [ring/ring-core "1.8.1"]]
+  :dependencies [[io.undertow/undertow-core "2.2.4.Final"]
+                 [ring/ring-core "1.9.1"]]
   :profiles {:dev     {:dependencies [[org.clojure/clojure "1.10.1"]
                                       [clj-http "3.10.1"]
                                       [stylefruits/gniazdo "1.1.3"]

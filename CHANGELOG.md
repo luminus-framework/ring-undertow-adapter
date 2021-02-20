@@ -1,3 +1,12 @@
+## 1.1.5 - February 20, 2021
+- Remove delay from session middleware. This is because using a different form of request mapping, i.e. non-lazy-map.
+
+## 1.1.4 - January 25, 2021
+- Add: `:max-entity-size`
+
+## 1.1.3 - October 20, 2020
+- Added entire web exchange in response
+
 ## 1.1.2 - August 12, 2020
 - support for custom headers in Websocket upgrade response [PR 9](https://github.com/luminus-framework/ring-undertow-adapter/pull/9)
 

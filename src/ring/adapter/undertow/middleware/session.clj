@@ -76,8 +76,7 @@
       (if-let [^HttpServerExchange exchange (:server-exchange request)]
         (let [response (handler
                          (assoc request
-                           ;; we assume the request map automatically derefs delays
-                           :session (delay (ring-session (get-or-create-session exchange options)))))]
+                           :session (ring-session (get-or-create-session exchange options))))]
           (when (contains? response :session)
             (if-let [data (:session response)]
               (when-let [session (get-or-create-session exchange)]

@@ -1,3 +1,9 @@
+## 1.2.1 - April 18, 2021
+
+- Add `custom-manager` configuration option to allow custom SessionManager interface to be passed in and used instead of the default InMemorySessionManager.
+- Bump to ring 1.9.2
+- Bump to undertow-core 2.2.7.Final
+
 ## 1.2.0 - February 20, 2021
 
 - Add InMemorySessionManager from Undertow by default

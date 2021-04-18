@@ -35,6 +35,10 @@ The handler is initialized using a map with the following keys:
 * `:async?` - ring async flag. When true, expect a ring async three arity handler function
 * `:handler-proxy` - an optional custom handler proxy function taking handler as single argument
 * `:max-entity-size`  - maximum size of a request entity
+* `:session-manager?` - initialize undertow session manager (default: true)
+* `:custom-manager`   - custom implementation that extends the io.undertow.server.session.SessionManager interface. Only used if `:session-manager?` is true. If not provided, defaults to Undertow inmemory SessionManager
+* `:max-sessions`     - maximum number of undertow sessions, for use with InMemorySessionManager (default: -1)
+* `:server-name`      - for use with InMemorySessionManager (default: "ring-undertow")
 
 ```clojure
 (require '[ring.adapter.undertow :refer [run-undertow]])

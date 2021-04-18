@@ -47,6 +47,7 @@
     (reify HttpHandler
       (handleRequest [_ exchange]
         (.dispatch exchange
+                   ^Runnable
                    (fn []
                      (handler
                        (build-exchange-map exchange)
@@ -58,7 +59,7 @@
 
 (defn ^:no-doc handler!
   [handler builder {:keys [dispatch? handler-proxy websocket? async? session-manager?
-                           max-sessions server-name]
+                           max-sessions server-name custom-manager]
                     :or   {dispatch?        true
                            websocket?       true
                            async?           false
@@ -73,7 +74,8 @@
     (cond->> (target-handler-proxy handler)
 
              session-manager?
-             (wrap-with-session-handler (InMemorySessionManager. (str server-name "-session-manager") max-sessions))
+             (wrap-with-session-handler (or custom-manager
+                                            (InMemorySessionManager. (str server-name "-session-manager") max-sessions)))
 
              (and (nil? handler-proxy)
                   dispatch?)
@@ -94,11 +96,13 @@
 (defn ^:no-doc listen!
   [^Undertow$Builder builder {:keys [host port ssl-port ssl-context key-managers trust-managers]
                               :as   options
-                              :or   {host "localhost" port 80 ssl-context (keystore->ssl-context options)}}]
-  (cond-> builder
-          (and ssl-port ssl-context) (.addHttpsListener ssl-port host ssl-context)
-          (and ssl-port (not ssl-context)) (.addHttpsListener ^int ssl-port ^String host ^"[Ljavax.net.ssl.KeyManager;" key-managers ^"[Ljavax.net.ssl.TrustManager;" trust-managers)
-          (and port) (.addHttpListener port host)))
+                              :or   {host "localhost"
+                                     port 80}}]
+  (let [ssl-context (or ssl-context (keystore->ssl-context options))]
+    (cond-> builder
+            (and ssl-port ssl-context) (.addHttpsListener ssl-port host ssl-context)
+            (and ssl-port (not ssl-context)) (.addHttpsListener ^int ssl-port ^String host ^"[Ljavax.net.ssl.KeyManager;" key-managers ^"[Ljavax.net.ssl.TrustManager;" trust-managers)
+            (and port) (.addHttpListener port host))))
 
 (defn ^:no-doc client-auth! [^Undertow$Builder builder {:keys [client-auth]}]
   (when client-auth
@@ -138,8 +142,9 @@
   :handler-proxy    - an optional custom handler proxy function taking handler as single argument
   :max-entity-size  - maximum size of a request entity
   :session-manager? - initialize undertow session manager (default: true)
-  :max-sessions     - maximum number of undertow session (default: -1)
-  :server-name      - for use in session manager (default: \"ring-undertow\")
+  :custom-manager   - custom implementation that extends the io.undertow.server.session.SessionManager interface
+  :max-sessions     - maximum number of undertow session, for use with InMemorySessionManager (default: -1)
+  :server-name      - for use in session manager, for use with InMemorySessionManager (default: \"ring-undertow\")
 
   Returns an Undertow server instance. To stop call (.stop server)."
   [handler options]

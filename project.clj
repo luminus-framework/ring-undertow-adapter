@@ -1,4 +1,4 @@
-(defproject luminus/ring-undertow-adapter "1.2.1"
+(defproject luminus/ring-undertow-adapter "1.2.2"
   :description "Ring Undertow adapter"
   :url "http://github.com/luminus-framework/ring-adapter-undertow"
   :license {:name "ISC License"

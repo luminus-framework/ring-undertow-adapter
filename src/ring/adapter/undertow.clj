@@ -58,7 +58,7 @@
                                                           :body   (.getMessage exception)})))))))))
 
 (defn ^:no-doc handler!
-  [handler builder {:keys [dispatch? handler-proxy websocket? async? session-manager?
+  [handler ^Undertow$Builder builder {:keys [dispatch? handler-proxy websocket? async? session-manager?
                            max-sessions server-name custom-manager]
                     :or   {dispatch?        true
                            websocket?       true

@@ -1,3 +1,13 @@
+## 1.2.3 - August 19, 2021
+
+- Fix project.clj config to prevent [packaging issue](https://github.com/luminus-framework/ring-undertow-adapter/issues/19)
+- Bump to ring 1.9.4
+- Bump to undertow-core 2.2.10.Final
+
+## 1.2.2 - July 22, 2021
+
+- Fix reflection warning [PR 17](https://github.com/luminus-framework/ring-undertow-adapter/pull/17)
+
 ## 1.2.1 - April 18, 2021
 
 - Add `custom-manager` configuration option to allow custom SessionManager interface to be passed in and used instead of the default InMemorySessionManager.

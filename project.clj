@@ -3,7 +3,7 @@
   :url "http://github.com/luminus-framework/ring-adapter-undertow"
   :license {:name "ISC License"
             :url  "http://opensource.org/licenses/ISC"}
-  :dependencies [[io.undertow/undertow-core "2.2.10.Final"]
+  :dependencies [[io.undertow/undertow-core "2.2.14.Final"]
                  [ring/ring-core "1.9.4"]]
   :profiles {:dev     {:dependencies [[org.clojure/clojure "1.10.3"]
                                       [clj-http "3.10.1"]

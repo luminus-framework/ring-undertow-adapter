@@ -106,4 +106,4 @@ Supported options:
 
 ## License
 
-Distributed under ISC License.
+Distributed under MIT License.

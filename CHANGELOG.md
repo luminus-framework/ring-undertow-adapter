@@ -1,3 +1,8 @@
+## 1.2.4 - December 7, 2021
+
+- Bump to undertow-core 2.2.14.Final
+- Update license to MIT
+
 ## 1.2.3 - August 19, 2021
 
 - Fix project.clj config to prevent [packaging issue](https://github.com/luminus-framework/ring-undertow-adapter/issues/19)

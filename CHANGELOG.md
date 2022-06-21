@@ -1,3 +1,9 @@
+## 1.2.6 - July 21, 2022
+
+- Bump to undertow-core 2.2.18.Final
+
+## 1.2.5
+
 ## 1.2.4 - December 7, 2021
 
 - Bump to undertow-core 2.2.14.Final

@@ -123,8 +123,10 @@
 
   (testing "websockets"
     (let [events  (atom [])
+          ws-ch   (atom nil)
           result  (promise)
-          ws-opts {:on-open    (fn [_]
+          ws-opts {:on-open    (fn [{:keys [channel]}]
+                                 (reset! ws-ch channel)
                                  (swap! events conj :open))
                    :on-message (fn [{:keys [data]}]
                                  (swap! events conj data))
@@ -134,7 +136,9 @@
         (let [socket (gniazdo/connect "ws://localhost:4347/")]
           (gniazdo/send-msg socket "hello")
           (gniazdo/close socket))
-        (is (= [:open "hello" :close] (deref result 2000 :fail))))))
+        (is (= [:open "hello" :close] (deref result 2000 :fail)))
+        (is (.isCloseFrameReceived @ws-ch) "Client close received")
+        (is (.isCloseFrameSent @ws-ch) "Client close acknowledged"))))
 
   (testing "websocket custom headers"
     (let [result  (promise)]

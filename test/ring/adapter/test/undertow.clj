@@ -125,13 +125,13 @@
     (let [events  (atom [])
           ws-ch   (atom nil)
           result  (promise)
-          ws-opts {:on-open    (fn [{:keys [channel]}]
-                                 (reset! ws-ch channel)
-                                 (swap! events conj :open))
-                   :on-message (fn [{:keys [data]}]
-                                 (swap! events conj data))
-                   :on-close   (fn [_]
-                                 (deliver result (swap! events conj :close)))}]
+          ws-opts {:on-open          (fn [{:keys [channel]}]
+                                       (reset! ws-ch channel)
+                                       (swap! events conj :open))
+                   :on-message       (fn [{:keys [data]}]
+                                       (swap! events conj data))
+                   :on-close-message (fn [_]
+                                       (deliver result (swap! events conj :close)))}]
       (with-server (websocket-handler ws-opts) {:port test-port}
         (let [socket (gniazdo/connect "ws://localhost:4347/")]
           (gniazdo/send-msg socket "hello")

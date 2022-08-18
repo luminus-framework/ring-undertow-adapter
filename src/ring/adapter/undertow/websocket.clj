@@ -12,7 +12,6 @@
      BufferedBinaryMessage
      BufferedTextMessage
      CloseMessage
-     StreamSourceFrameChannel
      WebSocketChannel
      WebSockets
      WebSocketCallback]
@@ -27,18 +26,14 @@
    Takes a map of functions as opts:
    :on-message         | fn taking map of keys :channel, :data
    :on-close-message   | fn taking map of keys :channel, :message
-   :on-close           | fn taking map of keys :channel, :ws-channel
    :on-error           | fn taking map of keys :channel, :error
 
    Each key defaults to no action"
   [{:keys [on-message on-close on-close-message on-error]}]
+  (assert (nil? on-close) ":on-close has been deprecated")
   (let [on-message       (or on-message (constantly nil))
         on-error         (or on-error (constantly nil))
-        on-close-message (or on-close-message (constantly nil))
-        on-close         (or on-close
-                             (fn [{:keys [ws-channel]}]
-                               (on-close-message {:channel ws-channel
-                                                  :message (CloseMessage. CloseMessage/GOING_AWAY nil)})))]
+        on-close-message (or on-close-message (constantly nil))]
     (proxy [AbstractReceiveListener] []
       (onFullTextMessage [^WebSocketChannel channel ^BufferedTextMessage message]
         (on-message {:channel channel
@@ -50,9 +45,6 @@
               (on-message {:channel channel
                            :data    (Util/toArray payload)}))
             (finally (.free pooled)))))
-      (onClose [^WebSocketChannel websocket-channel ^StreamSourceFrameChannel channel]
-        (on-close {:channel    channel
-                   :ws-channel websocket-channel}))
       (onCloseMessage [^CloseMessage message ^WebSocketChannel channel]
         (on-close-message {:channel channel
                            :message message}))

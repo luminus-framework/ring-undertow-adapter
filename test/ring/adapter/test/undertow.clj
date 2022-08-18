@@ -49,6 +49,17 @@
        ~@body
        (finally (.stop server#)))))
 
+(defn wait-until [f]
+  (loop [val       (f)
+         try-times 5]
+    (if val
+      val
+      (if (zero? try-times)
+        (throw (ex-info "Wait condition timed out" {:latest-val val}))
+        (do
+          (Thread/sleep 500)
+          (recur (f) (dec try-times)))))))
+
 (defn ^ByteBuffer str-to-bb
   [^String s]
   (ByteBuffer/wrap (.getBytes s "utf-8")))
@@ -138,7 +149,8 @@
           (gniazdo/close socket))
         (is (= [:open "hello" :close] (deref result 2000 :fail)))
         (is (.isCloseFrameReceived @ws-ch) "Client close received")
-        (is (.isCloseFrameSent @ws-ch) "Client close acknowledged"))))
+        ;; Wait loop in order to avoid race conditions between close comms and assertions
+        (is (wait-until #(.isCloseFrameSent @ws-ch)) "Client close acknowledged"))))
 
   (testing "websocket custom headers"
     (let [result  (promise)]

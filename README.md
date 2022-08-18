@@ -58,7 +58,6 @@ containing a `:undertow/websocket` containing the configuration map:
 * `:on-open` - fn taking a map with the key `:channel` (optional)
 * `:on-message` - fn taking map of keys `:channel`, `:data` (optional)
 * `:on-close-message` - fn taking map of keys `:channel`, `:message` (optional)
-* `:on-close` - fn taking map of keys `:channel`, `:ws-channel` (optional)
 * `:on-error` - fn taking map of keys `:channel`, `:error` (optional)
 
 ```clojure
@@ -68,7 +67,7 @@ containing a `:undertow/websocket` containing the configuration map:
   {:undertow/websocket 
    {:on-open (fn [{:keys [channel]}] (println "WS open!"))
     :on-message (fn [{:keys [channel data]}] (ws/send "message received" channel))
-    :on-close   (fn [{:keys [channel ws-channel]}] (println "WS closeed!"))}})
+    :on-close-message (fn [{:keys [channel message]}] (println "WS closeed!"))}})
 ```
 
 If headers are provided in the map returned from the handler function they are included in the

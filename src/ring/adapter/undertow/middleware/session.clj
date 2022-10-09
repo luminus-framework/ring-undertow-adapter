@@ -71,20 +71,34 @@
   value stored in the `io.undertow.server.session.Session` from the
   associated handler"
   [handler options]
-  (let [fallback (delay (ring-session/wrap-session handler options))]
-    (fn [request]
-      (if-let [^HttpServerExchange exchange (:server-exchange request)]
-        (let [response (handler
+  (let [fallback (delay (ring-session/wrap-session handler options))
+        side-effects! (fn [response ^HttpServerExchange exchange]
+                        (when (contains? response :session)
+                          (if-let [data (:session response)]
+                            (when-let [session (get-or-create-session exchange)]
+                              (set-ring-session! session data))
+                            (when-let [session (Sessions/getSession exchange)]
+                              (.invalidate session exchange)))))]
+    (fn wrapper-fn
+      ([request]
+       (if-let [^HttpServerExchange exchange (:server-exchange request)]
+         (let [response (handler
                          (assoc request
-                           :session (ring-session (get-or-create-session exchange options))))]
-          (when (contains? response :session)
-            (if-let [data (:session response)]
-              (when-let [session (get-or-create-session exchange)]
-                (set-ring-session! session data))
-              (when-let [session (Sessions/getSession exchange)]
-                (.invalidate session exchange))))
-          response)
-        (@fallback request)))))
+                                :session (ring-session (get-or-create-session exchange options))))]
+           (side-effects! response exchange)
+           response)
+         (@fallback request)))
+      ([request respond raise]
+       (if-let [^HttpServerExchange exchange (:server-exchange request)]
+         (let [response-handler! (fn [response]
+                                   (side-effects! response exchange)
+                                   (respond response))]
+           (handler (assoc request
+                           :session (ring-session (get-or-create-session exchange options)))
+                    response-handler!
+                    raise))
+         (@fallback request respond raise))))))
+
 
 ;; From https://github.com/immutant/immutant/blob/master/web/src/immutant/web/middleware.clj
 (defn wrap-session

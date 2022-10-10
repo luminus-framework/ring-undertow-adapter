@@ -1,3 +1,11 @@
+## 1.2.8 - October 10, 2022
+
+- Add async support for in memory session manager [PR 24](https://github.com/luminus-framework/ring-undertow-adapter/pull/24)
+- Bump to ring-core 1.9.6
+- Bump to undertow-core to 2.2.20.Final
+
+## 1.2.7
+
 ## 1.2.6 - July 21, 2022
 
 - Bump to undertow-core 2.2.18.Final

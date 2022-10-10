@@ -66,32 +66,35 @@
                (set-session-expiry session timeout)
                session)))))
 
+
+(defn- session-side-effects!
+  [response ^HttpServerExchange exchange]
+  (when (contains? response :session)
+    (if-let [data (:session response)]
+      (when-let [session (get-or-create-session exchange)]
+        (set-ring-session! session data))
+      (when-let [session (Sessions/getSession exchange)]
+        (.invalidate session exchange)))))
+
 (defn wrap-undertow-session
   "Ring middleware to insert a :session entry into the request, its
   value stored in the `io.undertow.server.session.Session` from the
   associated handler"
   [handler options]
-  (let [fallback (delay (ring-session/wrap-session handler options))
-        side-effects! (fn [response ^HttpServerExchange exchange]
-                        (when (contains? response :session)
-                          (if-let [data (:session response)]
-                            (when-let [session (get-or-create-session exchange)]
-                              (set-ring-session! session data))
-                            (when-let [session (Sessions/getSession exchange)]
-                              (.invalidate session exchange)))))]
+  (let [fallback (delay (ring-session/wrap-session handler options))]
     (fn wrapper-fn
       ([request]
        (if-let [^HttpServerExchange exchange (:server-exchange request)]
          (let [response (handler
                          (assoc request
                                 :session (ring-session (get-or-create-session exchange options))))]
-           (side-effects! response exchange)
+           (session-side-effects! response exchange)
            response)
          (@fallback request)))
       ([request respond raise]
        (if-let [^HttpServerExchange exchange (:server-exchange request)]
          (let [response-handler! (fn [response]
-                                   (side-effects! response exchange)
+                                   (session-side-effects! response exchange)
                                    (respond response))]
            (handler (assoc request
                            :session (ring-session (get-or-create-session exchange options)))

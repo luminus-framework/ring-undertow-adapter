@@ -1,4 +1,4 @@
-(defproject luminus/ring-undertow-adapter "1.2.8"
+(defproject luminus/ring-undertow-adapter "1.2.9"
   :description "Ring Undertow adapter"
   :url "http://github.com/luminus-framework/ring-adapter-undertow"
   :license {:name "MIT License"

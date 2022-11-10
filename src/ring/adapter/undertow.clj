@@ -94,15 +94,16 @@
           (not (nil? direct-buffers?)) (.setDirectBuffers direct-buffers?)))
 
 (defn ^:no-doc listen!
-  [^Undertow$Builder builder {:keys [host port ssl-port ssl-context key-managers trust-managers]
+  [^Undertow$Builder builder {:keys [host port ssl-port ssl-context key-managers trust-managers http?]
                               :as   options
                               :or   {host "localhost"
+                                     http? true
                                      port 80}}]
   (let [ssl-context (or ssl-context (keystore->ssl-context options))]
     (cond-> builder
             (and ssl-port ssl-context) (.addHttpsListener ssl-port host ssl-context)
             (and ssl-port (not ssl-context)) (.addHttpsListener ^int ssl-port ^String host ^"[Ljavax.net.ssl.KeyManager;" key-managers ^"[Ljavax.net.ssl.TrustManager;" trust-managers)
-            (and port) (.addHttpListener port host))))
+            (and http? port) (.addHttpListener port host))))
 
 (defn ^:no-doc client-auth! [^Undertow$Builder builder {:keys [client-auth]}]
   (when client-auth
@@ -122,6 +123,7 @@
 
   :configurator     - a function called with the Undertow Builder instance
   :host             - the hostname to listen on
+  :http?            - flag to enable http (defaults to true)
   :port             - the port to listen on (defaults to 80)
   :ssl-port         - a number, requires either :ssl-context, :keystore, or :key-managers
   :keystore         - the filepath (a String) to the keystore

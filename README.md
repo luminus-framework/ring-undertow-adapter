@@ -16,6 +16,7 @@ The handler is initialized using a map with the following keys:
 
 * `:configurator` - a function called with the Undertow Builder instance
 * `:host` - the hostname to listen on
+* `:http?` - flag to enable http (defaults to true)
 * `:port` - the port to listen on (defaults to 80)
 * `:ssl-port` - a number, requires either :ssl-context, :keystore, or :key-managers
 * `:keystore` - the filepath (a String) to the keystore

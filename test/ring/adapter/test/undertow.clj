@@ -2,6 +2,8 @@
   (:require
     [clojure.test :refer :all]
     [ring.adapter.undertow :refer :all]
+    [ring.websocket :as ws]
+    [ring.websocket.protocols :as wsp]
     [clj-http.client :as http]
     [gniazdo.core :as gniazdo]
     [clojure.java.io :as io])
@@ -210,3 +212,33 @@
         (is (.startsWith (get-in response [:headers "content-type"])
                          "text/plain"))
         (is (= (:body response) "Hello World"))))))
+
+(deftest undertow-ring-websockets
+  (let [events   (atom [])
+        received (atom [])
+        socket   (atom nil)
+        result   (promise)
+        listener (reify wsp/Listener
+                   (on-open [_ sock]
+                     (reset! socket sock)
+                     (swap! events conj [:open]))
+                   (on-message [_ sock mesg]
+                     (swap! events conj [:message mesg])
+                     (ws/send sock mesg))
+                   (on-pong [_ _ _]
+                     (swap! events conj :pong))
+                   (on-close [_ _sock code reason]
+                     (deliver result (swap! events conj [:close code reason]))))
+        handler  (constantly {:ring.websocket/listener listener})]
+    (with-server handler {:port test-port}
+      (let [socket (gniazdo/connect "ws://localhost:4347/"
+                                    :on-receive #(swap! received conj %))]
+        (gniazdo/send-msg socket "hello")
+        (wait-until #(seq @received))
+        (gniazdo/close socket 1000 "normal closure"))
+      (is (= ["hello"] @received))
+      (is (= [[:open]
+              [:message "hello"]
+              [:close 1000 "normal closure"]]
+             (deref result 2000 :fail)))
+      (is (wait-until #(not (ws/open? @socket))) "Client close acknowledged"))))

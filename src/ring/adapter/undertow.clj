@@ -9,10 +9,12 @@
     [io.undertow Undertow Undertow$Builder UndertowOptions]
     [org.xnio Options SslClientAuthMode]
     [io.undertow.server HttpHandler]
-    [io.undertow.server.handlers BlockingHandler]
+    [io.undertow.server.handlers BlockingHandler
+                                 GracefulShutdownHandler]
     [io.undertow.server.session SessionAttachmentHandler
                                 SessionCookieConfig
-                                SessionManager InMemorySessionManager]))
+                                SessionManager InMemorySessionManager]
+    [ring.adapter.undertow UndertowWrapper]))
 
 #_(set! *warn-on-reflection* true)
 
@@ -58,15 +60,15 @@
                                                           :body   (.getMessage exception)})))))))))
 
 (defn ^:no-doc handler!
-  [handler ^Undertow$Builder builder {:keys [dispatch? handler-proxy websocket? async? session-manager?
-                           max-sessions server-name custom-manager]
-                    :or   {dispatch?        true
-                           websocket?       true
-                           async?           false
-                           session-manager? true
-                           max-sessions     -1
-                           server-name      "ring-undertow"}
-                    :as   options}]
+  [handler ^Undertow$Builder {:keys [dispatch? handler-proxy websocket? async? session-manager?
+                                     max-sessions server-name custom-manager graceful-shutdown-timeout]
+                              :or   {dispatch?        true
+                                     websocket?       true
+                                     async?           false
+                                     session-manager? true
+                                     max-sessions     -1
+                                     server-name      "ring-undertow"}
+                              :as   options}]
   (let [target-handler-proxy (cond
                                (some? handler-proxy) handler-proxy
                                async? (async-undertow-handler options)
@@ -81,8 +83,8 @@
                   dispatch?)
              (BlockingHandler.)
 
-             true
-             (.setHandler builder))))
+             (some? graceful-shutdown-timeout)
+             (GracefulShutdownHandler.))))
 
 (defn ^:no-doc tune!
   [^Undertow$Builder builder {:keys [io-threads worker-threads buffer-size direct-buffers? max-entity-size]}]
@@ -96,9 +98,9 @@
 (defn ^:no-doc listen!
   [^Undertow$Builder builder {:keys [host port ssl-port ssl-context key-managers trust-managers http?]
                               :as   options
-                              :or   {host "localhost"
+                              :or   {host  "localhost"
                                      http? true
-                                     port 80}}]
+                                     port  80}}]
   (let [ssl-context (or ssl-context (keystore->ssl-context options))]
     (cond-> builder
             (and ssl-port ssl-context) (.addHttpsListener ssl-port host ssl-context)
@@ -118,40 +120,43 @@
     (.setServerOption builder UndertowOptions/ENABLE_HTTP2 true)
     (.setServerOption builder UndertowOptions/ENABLE_SPDY true)))
 
-(defn ^Undertow run-undertow
+(defn ^UndertowWrapper run-undertow
   "Start an Undertow webserver using given handler and the supplied options:
 
-  :configurator     - a function called with the Undertow Builder instance
-  :host             - the hostname to listen on
-  :http?            - flag to enable http (defaults to true)
-  :port             - the port to listen on (defaults to 80)
-  :ssl-port         - a number, requires either :ssl-context, :keystore, or :key-managers
-  :keystore         - the filepath (a String) to the keystore
-  :key-password     - the password for the keystore
-  :truststore       - if separate from the keystore
-  :trust-password   - if :truststore passed
-  :ssl-context      - a valid javax.net.ssl.SSLContext
-  :key-managers     - a valid javax.net.ssl.KeyManager []
-  :trust-managers   - a valid javax.net.ssl.TrustManager []
-  :http2?           - flag to enable http2
-  :io-threads       - # threads handling IO, defaults to available processors
-  :worker-threads   - # threads invoking handlers, defaults to (* io-threads 8)
-  :buffer-size      - a number, defaults to 16k for modern servers
-  :direct-buffers?  - boolean, defaults to true
-  :dispatch?        - dispatch handlers off the I/O threads (default: true)
-  :websocket?       - built-in handler support for websocket callbacks
-  :async?           - ring async flag. When true, expect a ring async three arity handler function
-  :handler-proxy    - an optional custom handler proxy function taking handler as single argument
-  :max-entity-size  - maximum size of a request entity
-  :session-manager? - initialize undertow session manager (default: true)
-  :custom-manager   - custom implementation that extends the io.undertow.server.session.SessionManager interface
-  :max-sessions     - maximum number of undertow session, for use with InMemorySessionManager (default: -1)
-  :server-name      - for use in session manager, for use with InMemorySessionManager (default: \"ring-undertow\")
+  :configurator              - a function called with the Undertow Builder instance
+  :host                      - the hostname to listen on
+  :http?                     - flag to enable http (defaults to true)
+  :port                      - the port to listen on (defaults to 80)
+  :ssl-port                  - a number, requires either :ssl-context, :keystore, or :key-managers
+  :keystore                  - the filepath (a String) to the keystore
+  :key-password              - the password for the keystore
+  :truststore                - if separate from the keystore
+  :trust-password            - if :truststore passed
+  :ssl-context               - a valid javax.net.ssl.SSLContext
+  :key-managers              - a valid javax.net.ssl.KeyManager []
+  :trust-managers            - a valid javax.net.ssl.TrustManager []
+  :http2?                    - flag to enable http2
+  :io-threads                - # threads handling IO, defaults to available processors
+  :worker-threads            - # threads invoking handlers, defaults to (* io-threads 8)
+  :buffer-size               - a number, defaults to 16k for modern servers
+  :direct-buffers?           - boolean, defaults to true
+  :dispatch?                 - dispatch handlers off the I/O threads (default: true)
+  :websocket?                - built-in handler support for websocket callbacks
+  :async?                    - ring async flag. When true, expect a ring async three arity handler function
+  :handler-proxy             - an optional custom handler proxy function taking handler as single argument
+  :max-entity-size           - maximum size of a request entity
+  :session-manager?          - initialize undertow session manager (default: true)
+  :custom-manager            - custom implementation that extends the io.undertow.server.session.SessionManager interface
+  :max-sessions              - maximum number of undertow session, for use with InMemorySessionManager (default: -1)
+  :server-name               - for use in session manager, for use with InMemorySessionManager (default: \"ring-undertow\")
+  :graceful-shutdown-timeout - timeout in milliseconds for graceful shutdown
 
-  Returns an Undertow server instance. To stop call (.stop server)."
+  Returns an UndertowWrapper server instance. To stop call (.stop server).
+  To get the original Undertow instance call (.getUndertow server)."
   [handler options]
-  (let [^Undertow$Builder builder (Undertow/builder)]
-    (handler! handler builder options)
+  (let [^Undertow$Builder builder (Undertow/builder)
+        base-handler              (handler! handler options)]
+    (.setHandler builder base-handler)
     (tune! builder options)
     (http2! builder options)
     (client-auth! builder options)
@@ -163,7 +168,9 @@
     (let [^Undertow server (.build builder)]
       (try
         (.start server)
-        server
+        (if-let [graceful-shutdown-timeout (:graceful-shutdown-timeout options)]
+          (UndertowWrapper. server base-handler graceful-shutdown-timeout)
+          (UndertowWrapper. server))
         (catch Exception ex
           (.stop server)
           (throw ex))))))

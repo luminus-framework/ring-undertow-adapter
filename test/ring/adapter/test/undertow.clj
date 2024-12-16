@@ -153,16 +153,16 @@
         (is (wait-until #(.isCloseFrameSent @ws-ch)) "Client close acknowledged"))))
 
   (testing "websocket custom headers"
-    (let [result  (promise)]
+    (let [result (promise)]
       (with-server websocket-handler-with-headers {:port test-port}
         (let [tester (fn [^Session session]
                        (deliver result
-                         (-> session
-                           (.getUpgradeResponse)
-                           (.getHeader "X-Test-Header"))))
+                                (-> session
+                                    (.getUpgradeResponse)
+                                    (.getHeader "X-Test-Header"))))
               socket (gniazdo/connect "ws://localhost:4347/" :on-connect tester)]
           (gniazdo/close socket))
-      (is (= "Hello!" (deref result 2000 :fail)))))))
+        (is (= "Hello!" (deref result 2000 :fail)))))))
 
 (def thread-exceptions (atom []))
 
@@ -210,3 +210,26 @@
         (is (.startsWith (get-in response [:headers "content-type"])
                          "text/plain"))
         (is (= (:body response) "Hello World"))))))
+
+(deftest undertow-graceful-shutdown-test
+  (testing "graceful shutdown"
+    (let [sleep-handler (fn [_]
+                          ;; Needs to be in a separate thread
+                          @(future
+                             (println "Start req")
+                             (Thread/sleep 500)
+                             (println "Done work")
+                             {:status  200
+                              :headers {"Content-Type" "text/plain"}
+                              :body    "Hello World"}))]
+      (let [server      (run-undertow sleep-handler {:port                      test-port
+                                                     :graceful-shutdown-timeout 1000})
+            future-resp (future (http/get test-url))]
+        (Thread/sleep 10)
+        (println "Graceful stop started")
+        (.stop server)
+        (println "Graceful stop called")
+        (let [response (deref future-resp)]
+          (is (= (:status response) 200))
+          (is (= (:body response) "Hello World")))))
+    ))

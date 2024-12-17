@@ -40,6 +40,7 @@ The handler is initialized using a map with the following keys:
 * `:custom-manager`   - custom implementation that extends the io.undertow.server.session.SessionManager interface. Only used if `:session-manager?` is true. If not provided, defaults to Undertow inmemory SessionManager
 * `:max-sessions`     - maximum number of undertow sessions, for use with InMemorySessionManager (default: -1)
 * `:server-name`      - for use with InMemorySessionManager (default: "ring-undertow")
+* `:graceful-shutdown-timeout` - timeout for graceful shutdown in milliseconds (default: nil, no graceful shutdown)
 
 ```clojure
 (require '[ring.adapter.undertow :refer [run-undertow]])

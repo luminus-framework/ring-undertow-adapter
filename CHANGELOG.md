@@ -1,6 +1,6 @@
 ## 1.4.0 - December 17, 2024
-- BREAKING: `run-undertow` now returns an `UndertowWrapper` object. The method proxies all original Undertow methods. However, it cannot be cast to Undertow itself. To get the original Undertow object, you can access it via the `getUndertow` method
-- Add support for graceful shutdown option. When `:graceful-shutdown-timeout` passed in will add graceful shutdown handler. [PR xx](TODO)
+- BREAKING: `run-undertow` now returns an `UndertowWrapper` object. The method proxies all original Undertow methods. However, it cannot be cast to Undertow itself. To get the original Undertow object, you can access it via the `getUndertow` method. See [PR 34](https://github.com/luminus-framework/ring-undertow-adapter/pull/34)
+- Add support for graceful shutdown option. When `:graceful-shutdown-timeout` passed in will add graceful shutdown handler. [PR 34](https://github.com/luminus-framework/ring-undertow-adapter/pull/34)
 - Bump to undertow-core 2.4.0.Final
 - Bump to ring-core 1.13.0 (note: consider adding new Ring WebSocket API in future release)
 

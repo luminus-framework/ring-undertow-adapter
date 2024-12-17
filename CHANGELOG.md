@@ -1,4 +1,4 @@
-## 1.4.0 - December xx, 2024
+## 1.4.0 - December 17, 2024
 - BREAKING: `run-undertow` now returns an `UndertowWrapper` object. The method proxies all original Undertow methods. However, it cannot be cast to Undertow itself. To get the original Undertow object, you can access it via the `getUndertow` method
 - Add support for graceful shutdown option. When `:graceful-shutdown-timeout` passed in will add graceful shutdown handler. [PR xx](TODO)
 - Bump to undertow-core 2.4.0.Final

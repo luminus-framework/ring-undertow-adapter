@@ -83,7 +83,7 @@
                   dispatch?)
              (BlockingHandler.)
 
-             (some? graceful-shutdown-timeout)
+             (number? graceful-shutdown-timeout)
              (GracefulShutdownHandler.))))
 
 (defn ^:no-doc tune!
@@ -168,9 +168,10 @@
     (let [^Undertow server (.build builder)]
       (try
         (.start server)
-        (if-let [graceful-shutdown-timeout (:graceful-shutdown-timeout options)]
-          (UndertowWrapper. server base-handler graceful-shutdown-timeout)
-          (UndertowWrapper. server))
+        (let [graceful-shutdown-timeout (:graceful-shutdown-timeout options)]
+          (if (number? graceful-shutdown-timeout)
+            (UndertowWrapper. server base-handler (long graceful-shutdown-timeout))
+            (UndertowWrapper. server)))
         (catch Exception ex
           (.stop server)
           (throw ex))))))

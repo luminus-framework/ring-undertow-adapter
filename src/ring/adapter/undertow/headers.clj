@@ -22,9 +22,9 @@
   (reduce-kv
     (fn [^HeaderMap header-map ^String key val-or-vals]
       (let [key (HttpString. key)]
-        (if (string? val-or-vals)
-          (.put header-map key ^String val-or-vals)
-          (.putAll header-map key val-or-vals)))
+        (if (or (sequential? val-or-vals) (set? val-or-vals))
+          (.putAll header-map key val-or-vals)
+          (.put header-map key ^String (str val-or-vals))))
       header-map)
     header-map
     headers))

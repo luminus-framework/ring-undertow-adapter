@@ -211,6 +211,34 @@
                          "text/plain"))
         (is (= (:body response) "Hello World"))))))
 
+(deftest number-header-test
+  (testing "integer header values should work"
+    (let [handler-with-int-headers (fn [_]
+                                     {:status  200
+                                      :headers {"X-Int"        (int 10)
+                                                "X-Long"       (long 42)}
+                                      :body    "hello"})]
+      (with-server handler-with-int-headers {:port test-port}
+        (let [response (http/get test-url)]
+          (is (= (:status response) 200))
+          (is (= (get-in response [:headers "x-int"]) "10"))
+          (is (= (get-in response [:headers "x-long"]) "42")))))))
+
+
+(deftest collection-headers-test
+  (testing "set or list headers should work"
+    (let [handler-with-int-headers (fn [_]
+                                     {:status  200
+                                      :headers {"banana"        ["a" "b"]
+                                                "apple"         #{"x" "y"}}
+                                      :body    "hello"})]
+      (with-server handler-with-int-headers {:port test-port}
+        (let [response (http/get test-url)]
+          (is (= (:status response) 200))
+          (is (= (get-in response [:headers "banana"]) ["a" "b"]))
+          (is (= (get-in response [:headers "apple"]) ["x" "y"])))))))
+
+
 (deftest undertow-graceful-shutdown-test
   (testing "graceful shutdown"
     (let [sleep-handler (fn [_]
@@ -231,5 +259,4 @@
         (println "Graceful stop called")
         (let [response (deref future-resp)]
           (is (= (:status response) 200))
-          (is (= (:body response) "Hello World")))))
-    ))
+          (is (= (:body response) "Hello World")))))))

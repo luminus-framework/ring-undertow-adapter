@@ -44,7 +44,7 @@
             (let [payload (.getResource pooled)]
               (on-message {:channel channel
                            :data    (Util/toArray payload)}))
-            (finally (.free pooled)))))
+            (finally (.close pooled)))))
       (onCloseMessage [^CloseMessage message ^WebSocketChannel channel]
         (on-close-message {:channel channel
                            :message message}))

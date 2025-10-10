@@ -1,3 +1,9 @@
+## 1.4.2
+- switch to use `.close` instead of `.free` for WebSocket pool to avoid [double-free issue](https://github.com/luminus-framework/ring-undertow-adapter/issues/40)
+
+## 1.4.1
+- [handle numbers as header values](https://github.com/luminus-framework/ring-undertow-adapter/commit/50b82674ed0faaedb20420691a2a30a492d24c26)
+
 ## 1.4.0 - December 17, 2024
 - BREAKING: `run-undertow` now returns an `UndertowWrapper` object. The method proxies all original Undertow methods. However, it cannot be cast to Undertow itself. To get the original Undertow object, you can access it via the `getUndertow` method. See [PR 34](https://github.com/luminus-framework/ring-undertow-adapter/pull/34)
 - Add support for graceful shutdown option. When `:graceful-shutdown-timeout` passed in will add graceful shutdown handler. [PR 34](https://github.com/luminus-framework/ring-undertow-adapter/pull/34)

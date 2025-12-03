@@ -43,7 +43,6 @@ The handler is initialized using a map with the following keys:
 * `:server-name`      - for use with InMemorySessionManager (default: "ring-undertow")
 * `:graceful-shutdown-timeout` - timeout for graceful shutdown in milliseconds (default: nil, no graceful shutdown)
 * `:gzip?` - flag to enable gzip compression (default: false)
-* `:gzip-deflate-level` - compression level for gzip (optional, defaults to GzipEncodingProvider default)
 
 ```clojure
 (require '[ring.adapter.undertow :refer [run-undertow]])
@@ -69,7 +68,7 @@ containing a `:undertow/websocket` containing the configuration map:
 (require '[ring.adapter.undertow.websocket :as ws])
 
 (fn [request]
-  {:undertow/websocket 
+  {:undertow/websocket
    {:on-open (fn [{:keys [channel]}] (println "WS open!"))
     :on-message (fn [{:keys [channel data]}] (ws/send "message received" channel))
     :on-close-message (fn [{:keys [channel message]}] (println "WS closed!"))}})
@@ -87,9 +86,9 @@ Connection) will be overwritten so that the WebSocket handshake completes correc
 
 ### Middleware
 
-Undertow adapter provides session middleware using Undertow session. 
+Undertow adapter provides session middleware using Undertow session.
 By default, sessions will timeout after 30 minutes of inactivity.
-  
+
 Supported options:
 
 * `:timeout` The number of seconds of inactivity before session expires [1800], value less than or equal to zero indicates the session
@@ -110,13 +109,13 @@ Supported options:
 
 ### Gzip Compression
 
-Gzip compression can be enabled by setting `:gzip? true` in the options map when calling `run-undertow`. 
-The middleware uses Undertow's native `GzipEncodingProvider` and automatically compresses responses 
+Gzip compression can be enabled by setting `:gzip? true` in the options map when calling `run-undertow`.
+The middleware uses Undertow's native `GzipEncodingProvider` and automatically compresses responses
 when clients send the `Accept-Encoding: gzip` header.
 
 Compression is automatically applied only to:
 - Responses that are at least 1KB in size
-- Responses with compressible content types (text/*, application/json, application/javascript, 
+- Responses with compressible content types (text/*, application/json, application/javascript,
   application/xml, application/*+xml, image/svg+xml)
 - Already-compressed content types (image/jpeg, image/png, video/*, application/pdf, etc.) are skipped
 

@@ -141,6 +141,7 @@
   :ssl-context               - a valid javax.net.ssl.SSLContext
   :key-managers              - a valid javax.net.ssl.KeyManager []
   :trust-managers            - a valid javax.net.ssl.TrustManager []
+  :client-auth                - SSL client authentication mode. Can be :want/:requested or :need/:required
   :http2?                    - flag to enable http2
   :io-threads                - # threads handling IO, defaults to available processors
   :worker-threads            - # threads invoking handlers, defaults to (* io-threads 8)

@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up JDK
+      uses: actions/setup-java@v4
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+    
+    - name: Install Leiningen
+      run: |
+        curl -sSL https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein > /tmp/lein
+        chmod +x /tmp/lein
+        sudo mv /tmp/lein /usr/local/bin/lein
+    
+    - name: Run tests
+      run: lein test
+

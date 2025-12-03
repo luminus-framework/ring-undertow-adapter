@@ -260,3 +260,4 @@
         (let [response (deref future-resp)]
           (is (= (:status response) 200))
           (is (= (:body response) "Hello World")))))))
+

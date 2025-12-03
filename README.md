@@ -26,6 +26,7 @@ The handler is initialized using a map with the following keys:
 * `:ssl-context` - a valid javax.net.ssl.SSLContext
 * `:key-managers` - a valid javax.net.ssl.KeyManager []
 * `:trust-managers` - a valid javax.net.ssl.TrustManager []
+* `:client-auth` - SSL client authentication mode. Can be `:want`/`:requested` or `:need`/`:required`
 * `:http2?` - a flag to enable http2. Boolean
 * `:io-threads` - # threads handling IO, defaults to available processors
 * `:worker-threads` - # threads invoking handlers, defaults to (* io-threads 8)
@@ -41,6 +42,7 @@ The handler is initialized using a map with the following keys:
 * `:max-sessions`     - maximum number of undertow sessions, for use with InMemorySessionManager (default: -1)
 * `:server-name`      - for use with InMemorySessionManager (default: "ring-undertow")
 * `:graceful-shutdown-timeout` - timeout for graceful shutdown in milliseconds (default: nil, no graceful shutdown)
+* `:gzip?` - flag to enable gzip compression (default: false)
 
 ```clojure
 (require '[ring.adapter.undertow :refer [run-undertow]])
@@ -66,10 +68,10 @@ containing a `:undertow/websocket` containing the configuration map:
 (require '[ring.adapter.undertow.websocket :as ws])
 
 (fn [request]
-  {:undertow/websocket 
+  {:undertow/websocket
    {:on-open (fn [{:keys [channel]}] (println "WS open!"))
     :on-message (fn [{:keys [channel data]}] (ws/send "message received" channel))
-    :on-close-message (fn [{:keys [channel message]}] (println "WS closeed!"))}})
+    :on-close-message (fn [{:keys [channel message]}] (println "WS closed!"))}})
 ```
 
 If headers are provided in the map returned from the handler function they are included in the
@@ -84,9 +86,9 @@ Connection) will be overwritten so that the WebSocket handshake completes correc
 
 ### Middleware
 
-Undertow adapter provides session middleware using Undertow session. 
+Undertow adapter provides session middleware using Undertow session.
 By default, sessions will timeout after 30 minutes of inactivity.
-  
+
 Supported options:
 
 * `:timeout` The number of seconds of inactivity before session expires [1800], value less than or equal to zero indicates the session
@@ -103,6 +105,24 @@ Supported options:
 (require '[ring.adapter.undertow.middleware.session :refer [wrap-session]])
 
 (wrap-session handler {:http-only true})
+```
+
+### Gzip Compression
+
+Gzip compression can be enabled by setting `:gzip? true` in the options map when calling `run-undertow`.
+The middleware uses Undertow's native `GzipEncodingProvider` and automatically compresses responses
+when clients send the `Accept-Encoding: gzip` header.
+
+Compression is automatically applied only to:
+- Responses that are at least 1KB in size
+- Responses with compressible content types (text/*, application/json, application/javascript,
+  application/xml, application/*+xml, image/svg+xml)
+- Already-compressed content types (image/jpeg, image/png, video/*, application/pdf, etc.) are skipped
+
+```clojure
+(require '[ring.adapter.undertow :refer [run-undertow]])
+
+(run-undertow handler {:port 8080 :gzip? true})
 ```
 
 ## License

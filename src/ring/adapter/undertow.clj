@@ -4,7 +4,8 @@
     [ring.adapter.undertow.request :refer [build-exchange-map]]
     [ring.adapter.undertow.response :refer [set-exchange-response]]
     [ring.adapter.undertow.ssl :refer [keystore->ssl-context]]
-    [ring.adapter.undertow.websocket :as ws])
+    [ring.adapter.undertow.websocket :as ws]
+    [ring.adapter.undertow.middleware.gzip :refer [wrap-with-gzip-handler]])
   (:import
     [io.undertow Undertow Undertow$Builder UndertowOptions]
     [org.xnio Options SslClientAuthMode]
@@ -61,13 +62,15 @@
 
 (defn ^:no-doc handler!
   [handler ^Undertow$Builder {:keys [dispatch? handler-proxy websocket? async? session-manager?
-                                     max-sessions server-name custom-manager graceful-shutdown-timeout]
+                                     max-sessions server-name custom-manager graceful-shutdown-timeout
+                                     gzip? gzip-deflate-level]
                               :or   {dispatch?        true
                                      websocket?       true
                                      async?           false
                                      session-manager? true
                                      max-sessions     -1
-                                     server-name      "ring-undertow"}
+                                     server-name      "ring-undertow"
+                                     gzip?            false}
                               :as   options}]
   (let [target-handler-proxy (cond
                                (some? handler-proxy) handler-proxy
@@ -78,6 +81,9 @@
              session-manager?
              (wrap-with-session-handler (or custom-manager
                                             (InMemorySessionManager. (str server-name "-session-manager") max-sessions)))
+
+             gzip?
+             (wrap-with-gzip-handler {:deflate-level gzip-deflate-level})
 
              (and (nil? handler-proxy)
                   dispatch?)
@@ -150,6 +156,8 @@
   :max-sessions              - maximum number of undertow session, for use with InMemorySessionManager (default: -1)
   :server-name               - for use in session manager, for use with InMemorySessionManager (default: \"ring-undertow\")
   :graceful-shutdown-timeout - timeout in milliseconds for graceful shutdown
+  :gzip?                     - flag to enable gzip compression (default: false)
+  :gzip-deflate-level        - compression level for gzip (optional, defaults to GzipEncodingProvider default)
 
   Returns an UndertowWrapper server instance. To stop call (.stop server).
   To get the original Undertow instance call (.getUndertow server)."

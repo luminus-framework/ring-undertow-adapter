@@ -11,7 +11,7 @@ ring-undertow-adapter is a [Ring](https://github.com/ring-clojure/ring) server b
 
 ### HTTP Handler
 
-HTTP handler returns an Undertow server instance. To stop call `(.stop <handler instance>)`.
+HTTP handler returns an UndertowWrapper server instance. To stop call `(.stop <handler instance>)`.
 The handler is initialized using a map with the following keys:
 
 * `:configurator` - a function called with the Undertow Builder instance
@@ -26,6 +26,7 @@ The handler is initialized using a map with the following keys:
 * `:ssl-context` - a valid javax.net.ssl.SSLContext
 * `:key-managers` - a valid javax.net.ssl.KeyManager []
 * `:trust-managers` - a valid javax.net.ssl.TrustManager []
+* `:client-auth` - SSL client authentication mode. Can be `:want`/`:requested` or `:need`/`:required`
 * `:http2?` - a flag to enable http2. Boolean
 * `:io-threads` - # threads handling IO, defaults to available processors
 * `:worker-threads` - # threads invoking handlers, defaults to (* io-threads 8)
@@ -41,6 +42,8 @@ The handler is initialized using a map with the following keys:
 * `:max-sessions`     - maximum number of undertow sessions, for use with InMemorySessionManager (default: -1)
 * `:server-name`      - for use with InMemorySessionManager (default: "ring-undertow")
 * `:graceful-shutdown-timeout` - timeout for graceful shutdown in milliseconds (default: nil, no graceful shutdown)
+* `:gzip?` - flag to enable gzip compression (default: false)
+* `:gzip-deflate-level` - compression level for gzip (optional, defaults to GzipEncodingProvider default)
 
 ```clojure
 (require '[ring.adapter.undertow :refer [run-undertow]])
@@ -69,7 +72,7 @@ containing a `:undertow/websocket` containing the configuration map:
   {:undertow/websocket 
    {:on-open (fn [{:keys [channel]}] (println "WS open!"))
     :on-message (fn [{:keys [channel data]}] (ws/send "message received" channel))
-    :on-close-message (fn [{:keys [channel message]}] (println "WS closeed!"))}})
+    :on-close-message (fn [{:keys [channel message]}] (println "WS closed!"))}})
 ```
 
 If headers are provided in the map returned from the handler function they are included in the
@@ -103,6 +106,26 @@ Supported options:
 (require '[ring.adapter.undertow.middleware.session :refer [wrap-session]])
 
 (wrap-session handler {:http-only true})
+```
+
+### Gzip Compression
+
+Gzip compression can be enabled by setting `:gzip? true` in the options map when calling `run-undertow`. 
+The middleware uses Undertow's native `GzipEncodingProvider` and automatically compresses responses 
+when clients send the `Accept-Encoding: gzip` header.
+
+```clojure
+(require '[ring.adapter.undertow :refer [run-undertow]])
+
+(run-undertow handler {:port 8080 :gzip? true})
+```
+
+You can also specify a custom compression level:
+
+```clojure
+(run-undertow handler {:port 8080 
+                        :gzip? true 
+                        :gzip-deflate-level 9})
 ```
 
 ## License

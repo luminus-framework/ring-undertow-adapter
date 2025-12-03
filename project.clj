@@ -12,6 +12,6 @@
                                       [criterium "0.4.6"]]
                        :source-paths ["dev"]}
              :precomp {:prep-tasks ["clean" "compile"]}}
-  :javac-options ["-target" "1.8" "-source" "1.8"]
+  :javac-options ["--release" "11"]
   :java-source-paths ["src"]
   :deploy-repositories [["releases" :clojars]])

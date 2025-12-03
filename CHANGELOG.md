@@ -1,3 +1,6 @@
+## 1.4.3
+- [add gzip middleware using Undertow GzipEncodingProvider](https://github.com/luminus-framework/ring-undertow-adapter/pull/42)
+
 ## 1.4.2
 - switch to use `.close` instead of `.free` for WebSocket pool to avoid [double-free issue](https://github.com/luminus-framework/ring-undertow-adapter/issues/40)
 
@@ -80,7 +83,7 @@
 - Added: `websocket?` key to exchange request map
 - Added: Exception on unsupported response body class
 - Improved: InputStream response handling based on IO blocking
-- Misc: Removed use of deprecated `extractTokenFromHeader` 
+- Misc: Removed use of deprecated `extractTokenFromHeader`
 
 ## 1.0.6 - May 15, 2020
 - Bumped to `io.undertow/undertow-core "2.1.1.Final"`

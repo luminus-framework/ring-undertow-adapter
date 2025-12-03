@@ -114,18 +114,16 @@ Gzip compression can be enabled by setting `:gzip? true` in the options map when
 The middleware uses Undertow's native `GzipEncodingProvider` and automatically compresses responses 
 when clients send the `Accept-Encoding: gzip` header.
 
+Compression is automatically applied only to:
+- Responses that are at least 1KB in size
+- Responses with compressible content types (text/*, application/json, application/javascript, 
+  application/xml, application/*+xml, image/svg+xml)
+- Already-compressed content types (image/jpeg, image/png, video/*, application/pdf, etc.) are skipped
+
 ```clojure
 (require '[ring.adapter.undertow :refer [run-undertow]])
 
 (run-undertow handler {:port 8080 :gzip? true})
-```
-
-You can also specify a custom compression level:
-
-```clojure
-(run-undertow handler {:port 8080 
-                        :gzip? true 
-                        :gzip-deflate-level 9})
 ```
 
 ## License

@@ -63,7 +63,7 @@
 (defn ^:no-doc handler!
   [handler ^Undertow$Builder {:keys [dispatch? handler-proxy websocket? async? session-manager?
                                      max-sessions server-name custom-manager graceful-shutdown-timeout
-                                     gzip? gzip-deflate-level]
+                                     gzip?]
                               :or   {dispatch?        true
                                      websocket?       true
                                      async?           false
@@ -83,7 +83,7 @@
                                             (InMemorySessionManager. (str server-name "-session-manager") max-sessions)))
 
              gzip?
-             (wrap-with-gzip-handler {:deflate-level gzip-deflate-level})
+             (wrap-with-gzip-handler {})
 
              (and (nil? handler-proxy)
                   dispatch?)
@@ -157,7 +157,6 @@
   :server-name               - for use in session manager, for use with InMemorySessionManager (default: \"ring-undertow\")
   :graceful-shutdown-timeout - timeout in milliseconds for graceful shutdown
   :gzip?                     - flag to enable gzip compression (default: false)
-  :gzip-deflate-level        - compression level for gzip (optional, defaults to GzipEncodingProvider default)
 
   Returns an UndertowWrapper server instance. To stop call (.stop server).
   To get the original Undertow instance call (.getUndertow server)."

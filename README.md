@@ -28,8 +28,10 @@ The handler is initialized using a map with the following keys:
 * `:trust-managers` - a valid javax.net.ssl.TrustManager []
 * `:client-auth` - SSL client authentication mode. Can be `:want`/`:requested` or `:need`/`:required`
 * `:http2?` - a flag to enable http2. Boolean
-* `:io-threads` - # threads handling IO, defaults to available processors
-* `:worker-threads` - # threads invoking handlers, defaults to (* io-threads 8)
+* `:io-threads` -  # threads handling IO, defaults to available processors
+* `:concurrent-requests` - maximum # of requests that can be processed concurrently (default: nil, unlimited)
+* `:queue-size` - maximum # of requests that can be queued when concurrent limit is reached (default: nil, unlimited queue). Requires `:concurrent-requests` to be set. When the queue is full, requests receive a 503 status.
+* `:worker-threads` - # threads invoking handlers, defaults to `:concurrent-requests` if set, otherwise to (* io-threads 8)
 * `:buffer-size` - a number, defaults to 16k for modern servers
 * `:direct-buffers?` - boolean, defaults to true
 * `:dispatch?`      - dispatch handlers off the I/O threads (default: true)
@@ -43,6 +45,7 @@ The handler is initialized using a map with the following keys:
 * `:server-name`      - for use with InMemorySessionManager (default: "ring-undertow")
 * `:graceful-shutdown-timeout` - timeout for graceful shutdown in milliseconds (default: nil, no graceful shutdown)
 * `:gzip?` - flag to enable gzip compression (default: false)
+
 
 ```clojure
 (require '[ring.adapter.undertow :refer [run-undertow]])
@@ -124,6 +127,14 @@ Compression is automatically applied only to:
 
 (run-undertow handler {:port 8080 :gzip? true})
 ```
+
+### Request Limiting
+
+Request limiting controls concurrent request processing and queueing to protect your server from overload, and allow quick recovery afterwards.
+
+To enable, set `:concurrent-requests` and `:queue-size` options. When the queue is full, backpressure will be applied in the form of status 503 responses.
+
+`:worker-threads` should not need to be set if you have `:concurrent-requests`, unless you're doing asyncronous requests.
 
 ## License
 

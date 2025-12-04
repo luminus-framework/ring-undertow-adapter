@@ -17,12 +17,10 @@
   - Client accepts gzip encoding via Accept-Encoding header
   
   Returns an HttpHandler that automatically compresses eligible responses with gzip."
-  ([^HttpHandler handler]
-   (wrap-with-gzip-handler {} handler))
-  ([_ ^HttpHandler handler]
-   (let [gzip-provider (GzipEncodingProvider.)
-         ;; Predicate: minimum 1KB size AND compressible content type
-         predicate (Predicates/parse "max-content-size(1) and regex(pattern='text/.*|application/(json|javascript|xml|.*\\\\+xml)|image/svg.*', value=%{o,Content-Type})")
-         encoding-repo (doto (ContentEncodingRepository.)
+  [^HttpHandler handler]
+  (let [gzip-provider (GzipEncodingProvider.)
+        ;; Predicate: minimum 1KB size AND compressible content type
+        predicate     (Predicates/parse "max-content-size(1) and regex(pattern='text/.*|application/(json|javascript|xml|.*\\\\+xml)|image/svg.*', value=%{o,Content-Type})")
+        encoding-repo (doto (ContentEncodingRepository.)
                         (.addEncodingHandler "gzip" gzip-provider 100 predicate))]
-     (EncodingHandler. handler encoding-repo))))
+    (EncodingHandler. handler encoding-repo)))

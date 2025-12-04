@@ -11,7 +11,7 @@
     [org.xnio Options SslClientAuthMode]
     [io.undertow.server HttpHandler]
     [io.undertow.server.handlers BlockingHandler
-                                 GracefulShutdownHandler]
+                                 GracefulShutdownHandler RequestLimitingHandler]
     [io.undertow.server.session SessionAttachmentHandler
                                 SessionCookieConfig
                                 SessionManager InMemorySessionManager]
@@ -60,12 +60,20 @@
                          (set-exchange-response exchange {:status 500
                                                           :body   (.getMessage exception)})))))))))
 
+(defn ^:no-doc wrap-with-req-limiter [concurrent-requests queue-size handler]
+  (when (and queue-size (not concurrent-requests))
+    ; If concurrent-requests isn't bounded, queue-size won't have any effect
+    (throw (IllegalArgumentException. ":queue-size requires :concurrent-requests to be set")))
+  (RequestLimitingHandler. concurrent-requests
+                           (or queue-size -1) ; -1 means unbounded queue
+                           handler))
+
+
 (defn ^:no-doc handler!
-  [handler ^Undertow$Builder {:keys [dispatch? handler-proxy websocket? async? session-manager?
+  [handler ^Undertow$Builder {:keys [dispatch? handler-proxy async? session-manager?
                                      max-sessions server-name custom-manager graceful-shutdown-timeout
-                                     gzip?]
+                                     gzip? concurrent-requests queue-size]
                               :or   {dispatch?        true
-                                     websocket?       true
                                      async?           false
                                      session-manager? true
                                      max-sessions     -1
@@ -83,7 +91,10 @@
                                             (InMemorySessionManager. (str server-name "-session-manager") max-sessions)))
 
              gzip?
-             (wrap-with-gzip-handler {})
+             (wrap-with-gzip-handler)
+
+             (or queue-size concurrent-requests)
+             (wrap-with-req-limiter concurrent-requests queue-size)
 
              (and (nil? handler-proxy)
                   dispatch?)
@@ -93,11 +104,11 @@
              (GracefulShutdownHandler.))))
 
 (defn ^:no-doc tune!
-  [^Undertow$Builder builder {:keys [io-threads worker-threads buffer-size direct-buffers? max-entity-size]}]
+  [^Undertow$Builder builder {:keys [io-threads concurrent-requests worker-threads buffer-size direct-buffers? max-entity-size]}]
   (cond-> builder
           max-entity-size (.setServerOption UndertowOptions/MAX_ENTITY_SIZE (long max-entity-size))
           io-threads (.setIoThreads io-threads)
-          worker-threads (.setWorkerThreads worker-threads)
+          worker-threads (.setWorkerThreads (or worker-threads concurrent-requests))
           buffer-size (.setBufferSize buffer-size)
           (not (nil? direct-buffers?)) (.setDirectBuffers direct-buffers?)))
 
@@ -143,8 +154,10 @@
   :trust-managers            - a valid javax.net.ssl.TrustManager []
   :client-auth                - SSL client authentication mode. Can be :want/:requested or :need/:required
   :http2?                    - flag to enable http2
+  :concurrent-requests       - maximum number of requests processed concurrently (default: nil, unlimited)
+  :queue-size                - maximum queued requests when limit is reached (default: nil, unlimited). Requires :concurrent-requests
   :io-threads                - # threads handling IO, defaults to available processors
-  :worker-threads            - # threads invoking handlers, defaults to (* io-threads 8)
+  :worker-threads            - # threads invoking handlers, defaults to :concurrent-requests if set, else (* io-threads 8)
   :buffer-size               - a number, defaults to 16k for modern servers
   :direct-buffers?           - boolean, defaults to true
   :dispatch?                 - dispatch handlers off the I/O threads (default: true)

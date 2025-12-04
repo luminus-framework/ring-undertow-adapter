@@ -249,15 +249,42 @@
                              (println "Done work")
                              {:status  200
                               :headers {"Content-Type" "text/plain"}
-                              :body    "Hello World"}))]
-      (let [server      (run-undertow sleep-handler {:port                      test-port
-                                                     :graceful-shutdown-timeout 1000})
-            future-resp (future (http/get test-url))]
-        (Thread/sleep 10)
-        (println "Graceful stop started")
-        (.stop server)
-        (println "Graceful stop called")
-        (let [response (deref future-resp)]
-          (is (= (:status response) 200))
-          (is (= (:body response) "Hello World")))))))
+                              :body    "Hello World"}))
+          server      (run-undertow sleep-handler {:port                      test-port
+                                                   :graceful-shutdown-timeout 1000})
+          future-resp (future (http/get test-url))]
+      (Thread/sleep 10)
+      (println "Graceful stop started")
+      (.stop server)
+      (println "Graceful stop called")
+      (let [response (deref future-resp)]
+        (is (= (:status response) 200))
+        (is (= (:body response) "Hello World"))))))
 
+(deftest concurrent-request-limiting-test
+  (testing "You have to set :concurrent-requests if you set :queue-size"
+    (is (thrown? IllegalArgumentException
+                 (run-undertow (fn [_] {:status 200 :body "OK"})
+                               {:port       test-port
+                                :queue-size 1}))))
+
+  (let [processed (atom 0)
+        latch     (promise)]
+    (with-server (fn [_]
+                   (swap! processed inc)
+                   (deref latch 500 :timeout) ;; Block until we release all requests
+                   {:status 200 :body "OK"})
+                 {:port                test-port
+                  :concurrent-requests 1
+                  :queue-size          1}
+      (let [r1 (future (http/get test-url))
+            _  (Thread/sleep 10)
+            r2 (future (http/get test-url))
+            _  (Thread/sleep 10)
+            r3 (future (http/get test-url {:throw-exceptions false}))]
+        (Thread/sleep 10)
+        (is (= @processed 1))
+        (is (= (:status (deref r3 100 :timeout)) 503))
+        (deliver latch true)
+        (is (= (:status (deref r1 100 :timeout)) 200))
+        (is (= (:status (deref r2 100 :timeout)) 200))))))

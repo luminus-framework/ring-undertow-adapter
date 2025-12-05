@@ -1,3 +1,6 @@
+## 1.4.4
+- [add :queue-size and :concurrent-requests options](https://github.com/luminus-framework/ring-undertow-adapter/pull/43)
+
 ## 1.4.3
 - [add gzip middleware using Undertow GzipEncodingProvider](https://github.com/luminus-framework/ring-undertow-adapter/pull/42)
 

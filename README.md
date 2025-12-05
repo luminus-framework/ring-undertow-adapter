@@ -14,38 +14,63 @@ ring-undertow-adapter is a [Ring](https://github.com/ring-clojure/ring) server b
 HTTP handler returns an Undertow server instance. To stop call `(.stop <handler instance>)`.
 The handler is initialized using a map with the following keys:
 
-* `:configurator` - a function called with the Undertow Builder instance
-* `:host` - the hostname to listen on
-* `:http?` - flag to enable http (defaults to true)
-* `:port` - the port to listen on (defaults to 80)
-* `:ssl-port` - a number, requires either :ssl-context, :keystore, or :key-managers
-* `:keystore` - the filepath (a String) to the keystore
-* `:key-password` - the password for the keystore
-* `:truststore` - if separate from the keystore
-* `:trust-password` - if :truststore passed
-* `:ssl-context` - a valid javax.net.ssl.SSLContext
-* `:key-managers` - a valid javax.net.ssl.KeyManager []
-* `:trust-managers` - a valid javax.net.ssl.TrustManager []
-* `:client-auth` - SSL client authentication mode. Can be `:want`/`:requested` or `:need`/`:required`
-* `:http2?` - a flag to enable http2. Boolean
-* `:io-threads` -  # threads handling IO, defaults to available processors
-* `:concurrent-requests` - maximum # of requests that can be processed concurrently (default: nil, unlimited)
-* `:queue-size` - maximum # of requests that can be queued when concurrent limit is reached (default: nil, unlimited queue). Requires `:concurrent-requests` to be set. When the queue is full, requests receive a 503 status.
-* `:worker-threads` - # threads invoking handlers, defaults to `:concurrent-requests` if set, otherwise to (* io-threads 8)
-* `:buffer-size` - a number, defaults to 16k for modern servers
-* `:direct-buffers?` - boolean, defaults to true
-* `:dispatch?`      - dispatch handlers off the I/O threads (default: true)
-* `:websocket?` - built-in handler support for websocket callbacks
-* `:async?` - ring async flag. When true, expect a ring async three arity handler function
-* `:handler-proxy` - an optional custom handler proxy function taking handler as single argument
-* `:max-entity-size`  - maximum size of a request entity
-* `:session-manager?` - initialize undertow session manager (default: true)
-* `:custom-manager`   - custom implementation that extends the io.undertow.server.session.SessionManager interface. Only used if `:session-manager?` is true. If not provided, defaults to Undertow inmemory SessionManager
-* `:max-sessions`     - maximum number of undertow sessions, for use with InMemorySessionManager (default: -1)
-* `:server-name`      - for use with InMemorySessionManager (default: "ring-undertow")
-* `:graceful-shutdown-timeout` - timeout for graceful shutdown in milliseconds (default: nil, no graceful shutdown)
-* `:gzip?` - flag to enable gzip compression (default: false)
+#### Network
 
+| Key | Default | Info |
+|-----|---------|------|
+| `:host` | `localhost` | The hostname to listen on. (Set to `0.0.0.0` to be reachable from the wider internet)  |
+| `:http?` | `true` | Flag to enable HTTP |
+| `:port` | `80` | The port to listen on |
+| `:http2?` | `false` | Flag to enable HTTP/2 |
+| `:gzip?` | `false` | Flag to enable gzip compression |
+
+#### SSL
+
+| Key | Default | Info |
+|-----|---------|------|
+| `:ssl-port` | - | SSL port number (requires `:ssl-context`, `:keystore`, or `:key-managers`) |
+| `:keystore` | - | Filepath (String) to the keystore |
+| `:key-password` | - | Password for the keystore |
+| `:truststore` | - | Truststore if separate from the keystore |
+| `:trust-password` | - | Password for the truststore |
+| `:ssl-context` | - | Valid `javax.net.ssl.SSLContext` |
+| `:key-managers` | - | Valid `javax.net.ssl.KeyManager[]` |
+| `:trust-managers` | - | Valid `javax.net.ssl.TrustManager[]` |
+| `:client-auth` | - | SSL client authentication mode: `:want`/`:requested` or `:need`/`:required` |
+
+#### Concurrency
+
+| Key | Default | Info |
+|-----|---------|------|
+| `:concurrent-requests` | `nil` (unlimited) | Maximum number of requests that can be processed concurrently |
+| `:queue-size` | `nil` (unlimited) | Maximum number of requests that can be queued when concurrent limit is reached. Requires `:concurrent-requests` to be set. When the queue is full, requests receive a 503 status |
+| `:worker-threads` | `:concurrent-requests` if set, else `(* io-threads 8)` | Number of threads invoking handlers |
+| `:graceful-shutdown-timeout` | `nil` (no graceful shutdown) | Timeout for graceful shutdown in milliseconds |
+
+#### Performance
+
+| Key | Default | Info |
+|-----|---------|------|
+| `:io-threads` | Available processors | Number of threads handling I/O |
+| `:buffer-size` | `16k` | Buffer size for modern servers |
+| `:direct-buffers?` | `true` | Use direct buffers |
+| `:dispatch?` | `true` | Dispatch handlers off the I/O threads |
+| `:max-entity-size` | - | Maximum size of a request entity |
+
+#### Misc
+
+| Key | Default | Info |
+|-----|---------|------|
+| `:configurator` | - | Function called with the Undertow Builder instance |
+| `:websocket?` | `true` | Built-in handler support for websocket callbacks |
+| `:async?` | `false` | Ring async flag. When true, expect a ring async three arity handler function |
+| `:handler-proxy` | - | Optional custom handler proxy function taking handler as single argument |
+| `:session-manager?` | `true` | Initialize Undertow session manager |
+| `:custom-manager` | - | Custom implementation that extends `io.undertow.server.session.SessionManager` interface. Only used if `:session-manager?` is true. If not provided, defaults to Undertow InMemorySessionManager |
+| `:max-sessions` | `-1` | Maximum number of Undertow sessions, for use with InMemorySessionManager |
+| `:server-name` | `"ring-undertow"` | Server name for use with InMemorySessionManager |
+
+### Code example
 
 ```clojure
 (require '[ring.adapter.undertow :refer [run-undertow]])
@@ -134,7 +159,7 @@ Request limiting controls concurrent request processing and queueing to protect 
 
 To enable, set `:concurrent-requests` and `:queue-size` options. When the queue is full, backpressure will be applied in the form of status 503 responses.
 
-`:worker-threads` should not need to be set if you have `:concurrent-requests`, unless you're doing asyncronous requests.
+`:worker-threads` should not need to be set if you have `:concurrent-requests`, unless you're doing asynchronous requests.
 
 ## License
 

@@ -55,7 +55,7 @@ The handler is initialized using a map with the following keys:
 | `:buffer-size` | `16k` | Buffer size for modern servers |
 | `:direct-buffers?` | `true` | Use direct buffers |
 | `:dispatch?` | `true` | Dispatch handlers off the I/O threads |
-| `:max-entity-size` | - | Maximum size of a request entity |
+| `:max-entity-size` | `nil` (unlimited) | Maximum size of the request body in bytes |
 
 #### Misc
 

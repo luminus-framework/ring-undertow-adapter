@@ -164,7 +164,7 @@
   :websocket?                - built-in handler support for websocket callbacks
   :async?                    - ring async flag. When true, expect a ring async three arity handler function
   :handler-proxy             - an optional custom handler proxy function taking handler as single argument
-  :max-entity-size           - maximum size of a request entity
+  :max-entity-size           - maximum size of the request body in bytes (default: unlimited)
   :session-manager?          - initialize undertow session manager (default: true)
   :custom-manager            - custom implementation that extends the io.undertow.server.session.SessionManager interface
   :max-sessions              - maximum number of undertow session, for use with InMemorySessionManager (default: -1)

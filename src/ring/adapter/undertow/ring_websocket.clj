@@ -21,7 +21,9 @@
     (-send [_ message]
       (if (instance? CharSequence message)
         (WebSockets/sendTextBlocking (.toString ^CharSequence message) channel)
-        (WebSockets/sendBinaryBlocking ^ByteBuffer message channel)))
+        (WebSockets/sendBinaryBlocking
+          (if (instance? ByteBuffer message) ^ByteBuffer message (ByteBuffer/wrap ^bytes message))
+          channel)))
     (-ping [_ data]
       (WebSockets/sendPingBlocking ^ByteBuffer data channel))
     (-pong [_ data]
@@ -35,7 +37,9 @@
                        (onError [_ _ _ ex] (fail ex)))]
         (if (instance? CharSequence message)
           (WebSockets/sendText (.toString ^CharSequence message) channel callback)
-          (WebSockets/sendBinary ^ByteBuffer message channel callback))))))
+          (WebSockets/sendBinary
+            (if (instance? ByteBuffer message) ^ByteBuffer message (ByteBuffer/wrap ^bytes message))
+            channel callback))))))
 
 (defn ws-listener [listener socket]
   (proxy [AbstractReceiveListener] []
@@ -45,7 +49,7 @@
       (let [pooled (.getData message)]
         (try
           (wsp/on-message listener socket (.getResource pooled))
-          (finally (.free pooled)))))
+          (finally (.close pooled)))))
     (onCloseMessage [^CloseMessage message ^WebSocketChannel _channel]
       (wsp/on-close listener socket (.getCode message) (.getReason message)))
     (onError [^WebSocketChannel channel ^Throwable error]
@@ -55,12 +59,12 @@
         (let [pooled (.getData message)]
           (try
             (wsp/on-ping listener socket (.getResource pooled))
-            (finally (.free pooled))))))
+            (finally (.close pooled))))))
     (onFullPongMessage [^WebSocketChannel channel ^BufferedBinaryMessage message]
       (let [pooled (.getData message)]
         (try
           (wsp/on-pong listener socket (.getResource pooled))
-          (finally (.free pooled)))))))
+          (finally (.close pooled)))))))
 
 (defn ws-callback [{:keys [ring.websocket/listener]}]
   (reify WebSocketConnectionCallback

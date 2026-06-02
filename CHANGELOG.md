@@ -1,3 +1,9 @@
+## 1.5.0
+- Add support for the [Ring WebSocket API](https://github.com/luminus-framework/ring-undertow-adapter/pull/30). A response map containing a `:ring.websocket/listener` upgrades the connection to a WebSocket. Originally contributed by [@weavejester](https://github.com/weavejester).
+- Deliver binary messages (and ping/pong payloads) to listeners as a single `java.nio.ByteBuffer` per the Ring spec, rather than Undertow's internal `ByteBuffer[]`.
+- Accept byte arrays as well as `ByteBuffer`s in `-ping`/`-pong`, matching `ring.websocket/ping` and `ring.websocket/pong`.
+- Automatically reply to incoming pings with a pong when the listener does not implement `PingListener`, as required by RFC 6455.
+
 ## 1.4.5
 - Bump to undertow-core 2.4.0.Final
 - Breaking - Bump JVM target to 17

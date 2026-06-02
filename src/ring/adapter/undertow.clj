@@ -5,7 +5,9 @@
     [ring.adapter.undertow.response :refer [set-exchange-response]]
     [ring.adapter.undertow.ssl :refer [keystore->ssl-context]]
     [ring.adapter.undertow.websocket :as ws]
-    [ring.adapter.undertow.middleware.gzip :refer [wrap-with-gzip-handler]])
+    [ring.adapter.undertow.ring-websocket :as rws]
+    [ring.adapter.undertow.middleware.gzip :refer [wrap-with-gzip-handler]]
+    [ring.websocket :as ring-ws])
   (:import
     [io.undertow Undertow Undertow$Builder UndertowOptions]
     [org.xnio Options SslClientAuthMode]
@@ -23,7 +25,9 @@
   (if websocket?
     (if-let [ws-config (:undertow/websocket response-map)]
       (->> ws-config (ws/ws-callback) (ws/ws-request exchange (:headers response-map)))
-      (set-exchange-response exchange response-map))
+      (if (ring-ws/websocket-response? response-map)
+        (->> (rws/ws-callback response-map) (ws/ws-request exchange (:headers response-map)))
+        (set-exchange-response exchange response-map)))
     (set-exchange-response exchange response-map)))
 
 (defn wrap-with-session-handler

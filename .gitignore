@@ -13,5 +13,7 @@ pom.xml.asc
 *.iml
 .nrepl-port
 /.clj-kondo/.cache/
+/.clj-kondo/imports/
 /.lsp/.cache/
 .DS_Store
+/.dirge/

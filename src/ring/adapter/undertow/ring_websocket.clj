@@ -14,6 +14,24 @@
     [io.undertow.websockets.spi WebSocketHttpExchange]
     [java.nio ByteBuffer]))
 
+(defn ^:private ^ByteBuffer ->byte-buffer
+  "Coerces a Ring websocket payload (a ByteBuffer or a byte array) into a
+  ByteBuffer."
+  [data]
+  (if (instance? ByteBuffer data)
+    data
+    (ByteBuffer/wrap ^bytes data)))
+
+(defn ^:private ^ByteBuffer buffered-data
+  "Reads a buffered binary message into a single ByteBuffer. Undertow hands back
+  a pooled ByteBuffer[]; mergeBuffers copies it into a fresh heap buffer that is
+  independent of the pool, so it remains valid after the pool is closed."
+  [^BufferedBinaryMessage message]
+  (let [pooled (.getData message)]
+    (try
+      (WebSockets/mergeBuffers ^"[Ljava.nio.ByteBuffer;" (.getResource pooled))
+      (finally (.close pooled)))))
+
 (defn ws-socket [^WebSocketChannel channel]
   (reify wsp/Socket
     (-open? [_]
@@ -21,13 +39,11 @@
     (-send [_ message]
       (if (instance? CharSequence message)
         (WebSockets/sendTextBlocking (.toString ^CharSequence message) channel)
-        (WebSockets/sendBinaryBlocking
-          (if (instance? ByteBuffer message) ^ByteBuffer message (ByteBuffer/wrap ^bytes message))
-          channel)))
+        (WebSockets/sendBinaryBlocking (->byte-buffer message) channel)))
     (-ping [_ data]
-      (WebSockets/sendPingBlocking ^ByteBuffer data channel))
+      (WebSockets/sendPingBlocking (->byte-buffer data) channel))
     (-pong [_ data]
-      (WebSockets/sendPongBlocking ^ByteBuffer data channel))
+      (WebSockets/sendPongBlocking (->byte-buffer data) channel))
     (-close [_ code reason]
       (WebSockets/sendCloseBlocking ^long code ^String reason channel))
     wsp/AsyncSocket
@@ -37,34 +53,30 @@
                        (onError [_ _ _ ex] (fail ex)))]
         (if (instance? CharSequence message)
           (WebSockets/sendText (.toString ^CharSequence message) channel callback)
-          (WebSockets/sendBinary
-            (if (instance? ByteBuffer message) ^ByteBuffer message (ByteBuffer/wrap ^bytes message))
-            channel callback))))))
+          (WebSockets/sendBinary (->byte-buffer message) channel callback))))))
 
 (defn ws-listener [listener socket]
   (proxy [AbstractReceiveListener] []
     (onFullTextMessage [^WebSocketChannel _channel ^BufferedTextMessage message]
       (wsp/on-message listener socket (.getData message)))
     (onFullBinaryMessage [^WebSocketChannel _channel ^BufferedBinaryMessage message]
-      (let [pooled (.getData message)]
-        (try
-          (wsp/on-message listener socket (.getResource pooled))
-          (finally (.close pooled)))))
+      (wsp/on-message listener socket (buffered-data message)))
     (onCloseMessage [^CloseMessage message ^WebSocketChannel _channel]
       (wsp/on-close listener socket (.getCode message) (.getReason message)))
-    (onError [^WebSocketChannel channel ^Throwable error]
+    (onError [^WebSocketChannel _channel ^Throwable error]
       (wsp/on-error listener socket error))
     (onFullPingMessage [^WebSocketChannel channel ^BufferedBinaryMessage message]
-      (when (satisfies? wsp/PingListener listener)
-        (let [pooled (.getData message)]
-          (try
-            (wsp/on-ping listener socket (.getResource pooled))
-            (finally (.close pooled))))))
-    (onFullPongMessage [^WebSocketChannel channel ^BufferedBinaryMessage message]
-      (let [pooled (.getData message)]
-        (try
-          (wsp/on-pong listener socket (.getResource pooled))
-          (finally (.close pooled)))))))
+      (let [data (buffered-data message)]
+        ;; When the listener handles pings it is responsible for the pong;
+        ;; otherwise reply automatically as required by RFC 6455.
+        (if (satisfies? wsp/PingListener listener)
+          (wsp/on-ping listener socket data)
+          (WebSockets/sendPong data channel
+                               (reify WebSocketCallback
+                                 (complete [_ _ _])
+                                 (onError [_ _ _ _]))))))
+    (onFullPongMessage [^WebSocketChannel _channel ^BufferedBinaryMessage message]
+      (wsp/on-pong listener socket (buffered-data message)))))
 
 (defn ws-callback [{:keys [ring.websocket/listener]}]
   (reify WebSocketConnectionCallback

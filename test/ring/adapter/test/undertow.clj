@@ -9,7 +9,13 @@
     [clojure.java.io :as io])
   (:import
     [java.nio ByteBuffer]
-    [org.eclipse.jetty.websocket.api Session]))
+    [java.net URI]
+    [org.eclipse.jetty.websocket.api Session]
+    [org.xnio Xnio OptionMap]
+    [io.undertow.server DefaultByteBufferPool]
+    [io.undertow.websockets.client WebSocketClient]
+    [io.undertow.websockets.core WebSockets WebSocketChannel
+     AbstractReceiveListener BufferedBinaryMessage]))
 
 (def test-port 4347)
 
@@ -320,3 +326,90 @@
               [:close 1000 "normal closure"]]
              (deref result 2000 :fail)))
       (is (wait-until #(not (ws/open? @socket))) "Client close acknowledged"))))
+
+(deftest undertow-ring-websockets-binary
+  ;; The server must receive binary frames as a single ByteBuffer (Ring spec),
+  ;; not as Undertow's internal ByteBuffer[]. It must also be able to send byte
+  ;; arrays back out, both synchronously and asynchronously.
+  (let [received  (atom nil)
+        recv-bin  (atom [])
+        async-ok  (promise)
+        listener  (reify wsp/Listener
+                    (on-open [_ sock]
+                      (ws/send sock (.getBytes "async-bin" "utf-8")
+                               #(deliver async-ok true)
+                               #(deliver async-ok %)))
+                    (on-message [_ sock msg]
+                      (reset! received msg)
+                      (ws/send sock (.getBytes "echo-bin" "utf-8")))
+                    (on-pong [_ _ _])
+                    (on-error [_ _ _])
+                    (on-close [_ _ _ _]))
+        handler   (constantly {:ring.websocket/listener listener})]
+    (with-server handler {:port test-port}
+      (let [socket (gniazdo/connect "ws://localhost:4347/"
+                                    :on-binary (fn [bs off len]
+                                                 (swap! recv-bin conj (String. bs off len))))]
+        (gniazdo/send-msg socket (ByteBuffer/wrap (.getBytes "binframe" "utf-8")))
+        (wait-until #(>= (count @recv-bin) 2))
+        (gniazdo/close socket 1000 "normal closure"))
+      (is (instance? ByteBuffer @received) "server received a ByteBuffer, not ByteBuffer[]")
+      (is (= "binframe" (let [^ByteBuffer b @received
+                              a (byte-array (.remaining b))]
+                          (.get b a)
+                          (String. a "utf-8"))))
+      (is (true? (deref async-ok 2000 :fail)) "async byte-array send succeeded")
+      (is (= #{"async-bin" "echo-bin"} (set @recv-bin))))))
+
+(deftest undertow-ring-websockets-ping-byte-array
+  ;; ring.websocket/ping and /pong accept byte arrays as well as ByteBuffers.
+  (let [pinged (promise)
+        listener (reify wsp/Listener
+                   (on-open [_ sock]
+                     (future
+                       (try
+                         (ws/ping sock (.getBytes "ping-data" "utf-8"))
+                         (ws/pong sock (.getBytes "pong-data" "utf-8"))
+                         (deliver pinged :ok)
+                         (catch Throwable t (deliver pinged [:threw (class t)])))))
+                   (on-message [_ _ _])
+                   (on-pong [_ _ _])
+                   (on-error [_ _ _])
+                   (on-close [_ _ _ _]))
+        handler (constantly {:ring.websocket/listener listener})]
+    (with-server handler {:port test-port}
+      (let [socket (gniazdo/connect "ws://localhost:4347/")]
+        (is (= :ok (deref pinged 2000 :fail)) "ping/pong of byte arrays did not throw")
+        (gniazdo/close socket)))))
+
+(deftest undertow-ring-websockets-auto-pong
+  ;; A listener that does not satisfy PingListener must still get an automatic
+  ;; pong reply to incoming pings (RFC 6455). Uses Undertow's own client for
+  ;; frame-level control.
+  (let [listener (reify wsp/Listener
+                   (on-open [_ _])
+                   (on-message [_ _ _])
+                   (on-pong [_ _ _])
+                   (on-error [_ _ _])
+                   (on-close [_ _ _ _]))
+        handler  (constantly {:ring.websocket/listener listener})
+        got-pong (promise)]
+    (with-server handler {:port test-port}
+      (let [worker (.createWorker (Xnio/getInstance) (OptionMap/EMPTY))
+            pool   (DefaultByteBufferPool. false 1024)
+            ch     ^WebSocketChannel
+                   (.. (WebSocketClient/connectionBuilder
+                         worker pool (URI. (str "ws://localhost:" test-port "/")))
+                       (connect) (get))]
+        (try
+          (.set (.getReceiveSetter ch)
+                (proxy [AbstractReceiveListener] []
+                  (onFullPongMessage [^WebSocketChannel _c ^BufferedBinaryMessage _m]
+                    (deliver got-pong :pong))))
+          (.resumeReceives ch)
+          (WebSockets/sendPingBlocking (ByteBuffer/wrap (.getBytes "probe" "utf-8")) ch)
+          (is (= :pong (deref got-pong 2000 :no-pong))
+              "server auto-replied to ping with pong")
+          (finally
+            (.sendClose ch)
+            (.shutdown worker)))))))

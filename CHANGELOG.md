@@ -1,3 +1,7 @@
+## 1.4.5
+- Bump to undertow-core 2.4.0.Final
+- Breaking - Bump JVM target to 17
+
 ## 1.4.4
 - [add :queue-size and :concurrent-requests options](https://github.com/luminus-framework/ring-undertow-adapter/pull/43)
 

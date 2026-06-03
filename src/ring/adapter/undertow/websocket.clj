@@ -72,7 +72,7 @@
       (let [{:keys [deflate-level
                     deflate-server-context-takeover?
                     deflate-client-context-takeover?]
-             :or   {deflate-level                     6
+             :or   {deflate-level                     -1
                     deflate-server-context-takeover?  true
                     deflate-client-context-takeover?  true}} opts]
         (.addExtension handler (PerMessageDeflateHandshake.

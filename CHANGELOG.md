@@ -1,3 +1,6 @@
+## 1.5.3 - bump up ring/defaults
+## 1.5.2 - bump up Undertow
+## 1.5.1 - bump up Undertow
 ## 1.5.0
 - Add support for the [Ring WebSocket API](https://github.com/luminus-framework/ring-undertow-adapter/pull/30). A response map containing a `:ring.websocket/listener` upgrades the connection to a WebSocket. Originally contributed by [@weavejester](https://github.com/weavejester).
 - Add `:permessage-deflate?` WebSocket option to enable per-message deflate compression ([#20](https://github.com/luminus-framework/ring-undertow-adapter/issues/20)). Compression can be tuned with `:deflate-level` (0-9, default -1 / Undertow's default compression), `:deflate-server-context-takeover?` (default true), and `:deflate-client-context-takeover?` (default true).

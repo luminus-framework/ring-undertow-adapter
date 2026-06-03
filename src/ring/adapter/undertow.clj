@@ -24,9 +24,11 @@
 (defn handle-request [websocket? exchange response-map]
   (if websocket?
     (if-let [ws-config (:undertow/websocket response-map)]
-      (->> ws-config (ws/ws-callback) (ws/ws-request exchange (:headers response-map)))
+      (let [callback (ws/ws-callback ws-config)]
+        (ws/ws-request exchange (:headers response-map) callback ws-config))
       (if (ring-ws/websocket-response? response-map)
-        (->> (rws/ws-callback response-map) (ws/ws-request exchange (:headers response-map)))
+        (let [callback (rws/ws-callback response-map)]
+          (ws/ws-request exchange (:headers response-map) callback {}))
         (set-exchange-response exchange response-map)))
     (set-exchange-response exchange response-map)))
 
@@ -108,13 +110,14 @@
              (GracefulShutdownHandler.))))
 
 (defn ^:no-doc tune!
-  [^Undertow$Builder builder {:keys [io-threads concurrent-requests worker-threads buffer-size direct-buffers? max-entity-size]}]
+  [^Undertow$Builder builder {:keys [io-threads concurrent-requests worker-threads buffer-size direct-buffers? max-entity-size allow-unescaped-characters?]}]
   (cond-> builder
           max-entity-size (.setServerOption UndertowOptions/MAX_ENTITY_SIZE (long max-entity-size))
           io-threads (.setIoThreads io-threads)
           worker-threads (.setWorkerThreads (or worker-threads concurrent-requests))
           buffer-size (.setBufferSize buffer-size)
-          (not (nil? direct-buffers?)) (.setDirectBuffers direct-buffers?)))
+          (not (nil? direct-buffers?)) (.setDirectBuffers direct-buffers?)
+          allow-unescaped-characters? (.setServerOption UndertowOptions/ALLOW_UNESCAPED_CHARACTERS_IN_URL true)))
 
 (defn ^:no-doc listen!
   [^Undertow$Builder builder {:keys [host port ssl-port ssl-context key-managers trust-managers http?]
@@ -174,7 +177,8 @@
   :max-sessions              - maximum number of undertow session, for use with InMemorySessionManager (default: -1)
   :server-name               - for use in session manager, for use with InMemorySessionManager (default: \"ring-undertow\")
   :graceful-shutdown-timeout - timeout in milliseconds for graceful shutdown
-  :gzip?                     - flag to enable gzip compression (default: false)
+   :gzip?                     - flag to enable gzip compression (default: false)
+   :allow-unescaped-characters? - allow unescaped characters in URLs (default: false)
 
   Returns an UndertowWrapper server instance. To stop call (.stop server).
   To get the original Undertow instance call (.getUndertow server)."

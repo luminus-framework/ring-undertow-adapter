@@ -15,6 +15,7 @@
      WebSocketChannel
      WebSockets
      WebSocketCallback]
+    [io.undertow.websockets.extensions PerMessageDeflateHandshake]
     [io.undertow.websockets.spi WebSocketHttpExchange]
     [org.xnio ChannelListener]
     [ring.adapter.undertow Util]
@@ -65,8 +66,10 @@
         (.set (.getReceiveSetter channel) listener)
         (.resumeReceives channel)))))
 
-(defn ws-request [^HttpServerExchange exchange ^IPersistentMap headers ^WebSocketConnectionCallback callback]
-  (let [handler (WebSocketProtocolHandshakeHandler. callback)]
+(defn ws-request [^HttpServerExchange exchange ^IPersistentMap headers ^WebSocketConnectionCallback callback opts]
+  (let [^WebSocketProtocolHandshakeHandler handler (WebSocketProtocolHandshakeHandler. callback)]
+    (when (:permessage-deflate? opts)
+      (.addExtension handler (PerMessageDeflateHandshake. true 6)))
     (when headers
       (set-headers (.getResponseHeaders exchange) headers))
     (.handleRequest handler exchange)))

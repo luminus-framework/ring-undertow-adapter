@@ -15,7 +15,8 @@
     [io.undertow.server DefaultByteBufferPool]
     [io.undertow.websockets.client WebSocketClient]
     [io.undertow.websockets.core WebSockets WebSocketChannel
-     AbstractReceiveListener BufferedBinaryMessage]))
+     AbstractReceiveListener BufferedBinaryMessage]
+    [io.undertow.websockets.extensions PerMessageDeflateHandshake]))
 
 (def test-port 4347)
 
@@ -170,7 +171,20 @@
                                     (.getHeader "X-Test-Header"))))
               socket (gniazdo/connect "ws://localhost:4347/" :on-connect tester)]
           (gniazdo/close socket))
-        (is (= "Hello!" (deref result 2000 :fail)))))))
+        (is (= "Hello!" (deref result 2000 :fail))))))
+
+  (testing "websocket permessage-deflate"
+    (let [events (atom [])
+          handler (fn [_]
+                    {:undertow/websocket
+                     {:permessage-deflate? true
+                      :on-open (fn [_] (swap! events conj :open))
+                      :on-message (fn [{:keys [data]}] (swap! events conj data))}})]
+      (with-server handler {:port test-port}
+        (let [socket (gniazdo/connect "ws://localhost:4347/")]
+          (gniazdo/send-msg socket "hello")
+          (gniazdo/close socket))
+        (is (= [:open "hello"] @events))))))
 
 (def thread-exceptions (atom []))
 
@@ -246,6 +260,36 @@
           (is (= (get-in response [:headers "banana"]) ["a" "b"]))
           (is (= (get-in response [:headers "apple"]) ["x" "y"])))))))
 
+(deftest allow-unescaped-characters-test
+  (testing "rejects unescaped characters by default"
+    (with-server echo-handler {:port test-port}
+      (let [sock (java.net.Socket. "localhost" test-port)
+            out  (java.io.OutputStreamWriter. (.getOutputStream sock) "UTF-8")
+            in   (java.io.BufferedReader. (java.io.InputStreamReader. (.getInputStream sock) "UTF-8"))]
+        (try
+          (.write out (str "GET /test?q={invalid} HTTP/1.1\r\n"
+                           "Host: localhost:" test-port "\r\n"
+                           "Connection: close\r\n\r\n"))
+          (.flush out)
+          (let [status-line (.readLine in)]
+            (is (.contains status-line "400")))
+          (finally
+            (.close sock))))))
+  (testing "allows unescaped characters when configured"
+    (with-server echo-handler {:port test-port
+                               :allow-unescaped-characters? true}
+      (let [sock (java.net.Socket. "localhost" test-port)
+            out  (java.io.OutputStreamWriter. (.getOutputStream sock) "UTF-8")
+            in   (java.io.BufferedReader. (java.io.InputStreamReader. (.getInputStream sock) "UTF-8"))]
+        (try
+          (.write out (str "GET /test?q={valid} HTTP/1.1\r\n"
+                           "Host: localhost:" test-port "\r\n"
+                           "Connection: close\r\n\r\n"))
+          (.flush out)
+          (let [status-line (.readLine in)]
+            (is (.contains status-line "200")))
+          (finally
+            (.close sock)))))))
 
 (deftest undertow-graceful-shutdown-test
   (testing "graceful shutdown"

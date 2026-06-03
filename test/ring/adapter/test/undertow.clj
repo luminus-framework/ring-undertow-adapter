@@ -184,6 +184,22 @@
         (let [socket (gniazdo/connect "ws://localhost:4347/")]
           (gniazdo/send-msg socket "hello")
           (gniazdo/close socket))
+        (is (= [:open "hello"] @events)))))
+
+  (testing "websocket permessage-deflate with custom options"
+    (let [events (atom [])
+          handler (fn [_]
+                    {:undertow/websocket
+                     {:permessage-deflate? true
+                      :deflate-level 9
+                      :deflate-server-context-takeover? false
+                      :deflate-client-context-takeover? false
+                      :on-open (fn [_] (swap! events conj :open))
+                      :on-message (fn [{:keys [data]}] (swap! events conj data))}})]
+      (with-server handler {:port test-port}
+        (let [socket (gniazdo/connect "ws://localhost:4347/")]
+          (gniazdo/send-msg socket "hello")
+          (gniazdo/close socket))
         (is (= [:open "hello"] @events))))))
 
 (def thread-exceptions (atom []))

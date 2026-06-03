@@ -69,7 +69,17 @@
 (defn ws-request [^HttpServerExchange exchange ^IPersistentMap headers ^WebSocketConnectionCallback callback opts]
   (let [^WebSocketProtocolHandshakeHandler handler (WebSocketProtocolHandshakeHandler. callback)]
     (when (:permessage-deflate? opts)
-      (.addExtension handler (PerMessageDeflateHandshake. true 6)))
+      (let [{:keys [deflate-level
+                    deflate-server-context-takeover?
+                    deflate-client-context-takeover?]
+             :or   {deflate-level                     6
+                    deflate-server-context-takeover?  true
+                    deflate-client-context-takeover?  true}} opts]
+        (.addExtension handler (PerMessageDeflateHandshake.
+                                 true
+                                 (int deflate-level)
+                                 (boolean deflate-server-context-takeover?)
+                                 (boolean deflate-client-context-takeover?)))))
     (when headers
       (set-headers (.getResponseHeaders exchange) headers))
     (.handleRequest handler exchange)))
